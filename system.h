@@ -1,0 +1,1 @@
+void SysShutdown(void);			// SysShutdown: shutdowns the application and releases memory
