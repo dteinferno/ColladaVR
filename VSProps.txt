@@ -1,0 +1,26 @@
+Visual Studio Properties
+
+Use multi-byte but not precompiled headers
+
+Additional Directories
+D:\OpenGL\Simple OpenGL Image Library\src
+C:\Program Files %28x86%29\National Instruments\NI-DAQ\DAQmx ANSI C Dev\include
+D:\OpenGL\boost_1_55_0\boost_1_55_0
+D:\OpenGL\include
+
+Names of Libraries
+opengl32.lib
+glu32.lib
+glew32.lib
+odbc32.lib
+odbccp32.lib
+ftd2xx.lib
+NIDAQmx.lib
+SOIL.lib
+
+Library Directories
+D:\OpenGL\glew-1.10.0-win32\glew-1.10.0\lib\Release\Win32
+D:\OpenGL\boost_1_55_0\boost_1_55_0\stage\lib
+D:\OpenGL\CDM v2.10.00 WHQL Certified\i386
+C:\Program Files %28x86%29\National Instruments\NI-DAQ\DAQmx ANSI C Dev\lib\msvc
+D:\OpenGL\Simple OpenGL Image Library\projects\VC9\Release
