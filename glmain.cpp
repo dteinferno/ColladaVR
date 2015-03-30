@@ -10,6 +10,7 @@
 #include "winmain.h"
 #include "system.h"
 #include "balloffset.h"
+#include "colladainterface.h"
 
 // Define constants related to the shapes
 float dist2stripe = 10;
@@ -128,8 +129,11 @@ const char* fragment_shader =
 "}";
 
 // Define the OpenGL constants
-GLuint vao[4];
-GLuint vbo;
+std::vector<ColGeom> geom_vec;    // Vector containing COLLADA meshes
+int num_objects;                  // Number of meshes in the vector
+std::vector<ColIm> im_vec;    // Vector containing COLLADA texture images
+int num_images;                  // Number of images in the vector
+GLuint *vaos, *vbos;              // OpenGL vertex objects
 GLuint vs;
 GLuint fs;
 GLuint shader_program;
@@ -186,79 +190,59 @@ void InitOpenGL(void)
 	glLinkProgram(shader_program);
 	glUseProgram(shader_program);
 
-	// Initialize the vertex array object for the object
-	glGenVertexArrays(1, &vao[0]);
-	glBindVertexArray(vao[0]);
+	// Initialize COLLADA geometries
+	ColladaInterface::readGeometries(&geom_vec, "sphere.dae");
+	//ColladaInterface::readGeometries(&geom_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
+	num_objects = (int)geom_vec.size();
 
-	// Read our first .obj file
-	bool resdat = loadOBJ("d://OpenGL//BlenderObjects//Cylinder.obj", vertices_obj1, uvs_obj1, normals_obj1);
+	GLint posAttrib;
+	GLint normAttrib;
+	GLint texAttrib;
 
-	glGenBuffers(1, &vbo_obj1);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_obj1);
-	glBufferData(GL_ARRAY_BUFFER, vertices_obj1.size() * sizeof(glm::vec3), &vertices_obj1[0], GL_STATIC_DRAW);
+	// Create a VAO for each geometry
+	vaos = new GLuint[num_objects+1];
+	glGenVertexArrays(num_objects+1, vaos);
 
-	glGenBuffers(1, &uvbuffer_obj1);
-	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer_obj1);
-	glBufferData(GL_ARRAY_BUFFER, uvs_obj1.size() * sizeof(glm::vec2), &uvs_obj1[0], GL_STATIC_DRAW);
+	// Create a VBO for each geometry
+	vbos = new GLuint[3 * num_objects + 1];
+	glGenBuffers(3 * num_objects + 1, vbos);
 
-	glGenBuffers(1, &normalsbuffer_obj1);
-	glBindBuffer(GL_ARRAY_BUFFER, normalsbuffer_obj1);
-	glBufferData(GL_ARRAY_BUFFER, normals_obj1.size() * sizeof(glm::vec3), &normals_obj1[0], GL_STATIC_DRAW);
+	// Configure VBOs to hold positions and normals for each geometry
+	for (int i = 0; i<num_objects; i++) {
 
-	// Create a pointer for the position
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_obj1);
-	GLint posAttrib = glGetAttribLocation(shader_program, "position");
-	glEnableVertexAttribArray(posAttrib);
-	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		glBindVertexArray(vaos[i]);
 
-	// Create a pointer for the texture coordinates
-	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer_obj1);
-	GLint texAttrib = glGetAttribLocation(shader_program, "texcoord");
-	glEnableVertexAttribArray(texAttrib);
-	glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		// Set vertex coordinate data
+		glBindBuffer(GL_ARRAY_BUFFER, vbos[3 * i]);
+		glBufferData(GL_ARRAY_BUFFER, geom_vec[i].map["POSITION"].size,
+			geom_vec[i].map["POSITION"].data, GL_STATIC_DRAW);
+		posAttrib = glGetAttribLocation(shader_program, "position");
+		glEnableVertexAttribArray(posAttrib);
+		glVertexAttribPointer(posAttrib, geom_vec[i].map["POSITION"].stride,
+			geom_vec[i].map["POSITION"].type, GL_FALSE, 0, 0);
 
-	// Initialize the vertex array object for the object
-	glGenVertexArrays(1, &vao[1]);
-	glBindVertexArray(vao[1]);
+		// Set normal vector data
+		glBindBuffer(GL_ARRAY_BUFFER, vbos[3 * i + 1]);
+		glBufferData(GL_ARRAY_BUFFER, geom_vec[i].map["NORMAL"].size,
+			geom_vec[i].map["NORMAL"].data, GL_STATIC_DRAW);
+		//normAttrib = glGetAttribLocation(program, "in_normals");
+		//glVertexAttribPointer(loc, geom_vec[i].map["NORMAL"].stride,
+		//	geom_vec[i].map["NORMAL"].type, GL_FALSE, 0, 0);
+		//glEnableVertexAttribArray(1);
 
-	// Read our first .obj file
-	resdat = loadOBJ("d://OpenGL//BlenderObjects//FrontCyl.obj", vertices_obj2, uvs_obj2, normals_obj2);
+		// Set the texture data
+		//glBindBuffer(GL_ARRAY_BUFFER, vbos[3 * i + 2]);
+		//glBufferData(GL_ARRAY_BUFFER, geom_vec[i].map["TEXTURE"].size,
+		//	geom_vec[i].map["TEXTURE"].data, GL_STATIC_DRAW);
+		//texAttrib = glGetAttribLocation(shader_program, "texcoord");
+		//glEnableVertexAttribArray(texAttrib);
+		//glVertexAttribPointer(texAttrib, geom_vec[i].map["TEXTURE"].stride, geom_vec[i].map["TEXTURE"].type, GL_FALSE, 0, 0);
 
-	// Read our second .obj file
-	resdat = loadOBJ("d://OpenGL//BlenderObjects//BackCyl.obj", vertices_obj2, uvs_obj2, normals_obj2);
-
-	glGenBuffers(1, &vbo_obj2);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_obj2);
-	glBufferData(GL_ARRAY_BUFFER, vertices_obj2.size() * sizeof(glm::vec3), &vertices_obj2[0], GL_STATIC_DRAW);
-
-	glGenBuffers(1, &uvbuffer_obj2);
-	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer_obj2);
-	glBufferData(GL_ARRAY_BUFFER, uvs_obj2.size() * sizeof(glm::vec2), &uvs_obj2[0], GL_STATIC_DRAW);
-
-	glGenBuffers(1, &normalsbuffer_obj2);
-	glBindBuffer(GL_ARRAY_BUFFER, normalsbuffer_obj2);
-	glBufferData(GL_ARRAY_BUFFER, normals_obj2.size() * sizeof(glm::vec3), &normals_obj2[0], GL_STATIC_DRAW);
-
-	// Create a pointer for the position
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_obj2);
-	glEnableVertexAttribArray(posAttrib);
-	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-	// Create a pointer for the texture coordinates
-	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer_obj2);
-	glEnableVertexAttribArray(texAttrib);
-	glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-	// Initialize the vertex array object for the object
-	//glGenVertexArrays(1, &vao[2]);
-	//glBindVertexArray(vao[2]);
+	}
 
 	// Create our distorted screen
 	// Initialize the vertex array object
-	glGenVertexArrays(1, &vao[3]);
-	glBindVertexArray(vao[3]);
-
-	glGenBuffers(1, &vbo);
+	glBindVertexArray(vaos[num_objects]);
 
 	// Define constants for defining the shapes
 	float windowSpan =  dist2stripe * tanf(fovAng / 2);
@@ -304,7 +288,7 @@ void InitOpenGL(void)
 	};
 
 	// Bind the vertex data to the buffer array
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbos[2 * num_objects +1]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 	// Initialize the element array buffer
@@ -339,17 +323,22 @@ void InitOpenGL(void)
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 
 	// Create a pointer for the position
+	posAttrib = glGetAttribLocation(shader_program, "position");
 	glEnableVertexAttribArray(posAttrib);
 	glVertexAttribPointer(posAttrib, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), 0);
 
 	// Create a pointer for the texture coordinates
+	texAttrib = glGetAttribLocation(shader_program, "texcoord");
 	glEnableVertexAttribArray(texAttrib);
 	glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
 
+	// Initialize COLLADA textures
+	ColladaInterface::readImages(&im_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
+	num_images = (int)im_vec.size();
 
 	// Create a texture array
-	tex = new GLuint[5];
-	glGenTextures(5, tex);
+	tex = new GLuint[num_images+4];
+	glGenTextures(num_images+4, tex);
 
 	// Uniform white texture
 	glBindTexture(GL_TEXTURE_2D, tex[0]);
@@ -372,18 +361,24 @@ void InitOpenGL(void)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	}
 
+
 	// Load a texture using the SOIL loader
 	int texWidth, texHeight;
-	unsigned char* texImage = SOIL_load_image("d://OpenGL//Textures//SqNoise.png", &texWidth, &texHeight, 0, SOIL_LOAD_RGB);
+	const char * texfname;
+	unsigned char* texImage;
+	FILE *fnstr;
+	for (int i = 0; i < num_images; i++) {
+		texfname = im_vec[i].imageloc.c_str();
+		texImage = SOIL_load_image(texfname, &texWidth, &texHeight, 0, SOIL_LOAD_RGB);
+		glBindTexture(GL_TEXTURE_2D, tex[4 + i]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, texImage);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glBindTexture(GL_TEXTURE_2D, tex[4]);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, texImage);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	
-	SOIL_free_image_data(texImage);
+		SOIL_free_image_data(texImage);
+	}
 
 	// Pull out the cylindrical distortion switch uniform from the shader
 	cylLocation = glGetUniformLocation(shader_program, "cyl");
@@ -412,7 +407,6 @@ void RenderFrame(int direction)
 		//Clear the image and bind the appropriate color texture
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);  // Set the background color to black
 		glClearDepth(1.0f);
-		glBindTexture(GL_TEXTURE_2D, tex[4]); // Bind the appropriate color texture
 		glUniform1f(setColor, (int)n+1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear the buffers
 		glUniform1f(cylLocation, (float) 0.0f); // Initially, we want an undistorted projection
@@ -461,59 +455,18 @@ void RenderFrame(int direction)
 			
 			if (closed)
 			{
-				// Draw the shapes
-				//glBindVertexArray(vao[0]);
-				//glDrawArrays(GL_TRIANGLES, 0, vertices_obj1.size());
-				glBindVertexArray(vao[1]);
-				glDrawArrays(GL_TRIANGLES, 0, vertices_obj2.size());
-				//glBindVertexArray(vao[2]);
-				//glDrawArrays(GL_TRIANGLES, 0, vertices_obj.size());
+				// Draw elements of each mesh in the vector
+				for (int i = 0; i<num_objects; i++) {
+					glBindTexture(GL_TEXTURE_2D, tex[4]); // Bind the appropriate color texture
+					glBindVertexArray(vaos[i]);
+					glDrawElements(geom_vec[i].primitive, geom_vec[i].index_count,
+						GL_UNSIGNED_SHORT, geom_vec[i].indices);
+				}
 			}
 			else
 			{
-				glBindVertexArray(vao[3]);
+				glBindVertexArray(vaos[num_objects]);
 				glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-			}
-
-			// Unused code for drawing other shapes
-			if (0){
-				// Grating
-				glBindVertexArray(vao[2]);
-				int numStripes = 18;
-				float gratAng = 360.0 / 18.0;
-				for (int angGrat = 0; angGrat < numStripes; angGrat++)
-				{
-					ModelMatrix =
-						//glm::translate(identity, glm::vec3(dist2stripe*sinf((BallOffsetRotNow) * M_PI / 180), dist2stripe*(1.0f - cosf((BallOffsetRotNow)  * M_PI / 180)), 0.0f)) *
-						glm::rotate(identity, BallOffsetRotNow + gratAng*angGrat, glm::vec3(0.0f, 0.0f, 1.0f));
-					glUniformMatrix4fv(ModelID, 1, false, glm::value_ptr(ModelMatrix));
-					glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-				}
-				// Second stripe
-				ModelMatrix =
-					glm::rotate(identity, BallOffsetRotNow, glm::vec3(0.0f, 0.0f, 1.0f)) *
-					glm::translate(identity, glm::vec3(-BallOffsetSideNow, -BallOffsetForNow, 0.0f)) *
-					glm::rotate(identity, 180.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-				glUniformMatrix4fv(ModelID, 1, false, glm::value_ptr(ModelMatrix));
-				glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-
-				for (int ang = 0; ang < int(numAng); ang++) {
-					// Ground plane
-					ModelMatrix =
-						glm::rotate(identity, BallOffsetRotNow, glm::vec3(0.0f, 0.0f, 1.0f)) *
-						glm::translate(identity, glm::vec3(-BallOffsetSideNow, -BallOffsetForNow, 0.0f)) *
-						glm::rotate(identity, (float) 360.0f / numAng*ang, glm::vec3(0.0f, 0.0f, 1.0f));
-					glUniformMatrix4fv(ModelID, 1, false, glm::value_ptr(ModelMatrix));
-					glBindTexture(GL_TEXTURE_2D, tex[2]);
-					glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, (void*)(18 * sizeof(GLfloat)));
-					glBindTexture(GL_TEXTURE_2D, tex[n]);
-
-					// Trench
-					//glBindTexture(GL_TEXTURE_2D, tex[2]);
-					//glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, (void*)(27 * sizeof(GLfloat)));
-					//glBindTexture(GL_TEXTURE_2D, tex[n]);
-				}
 			}
 		}
 		// Capture the stripe as a texture
@@ -530,7 +483,7 @@ void RenderFrame(int direction)
 
 		// Clear the screen and apply
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glBindVertexArray(vao[3]);
+		glBindVertexArray(vaos[num_objects]);
 
 		glUniform1f(setColor, (int)0);
 		glUniform1f(cylLocation, (float) 1.0f); // Allow the projection to be distorted for the cylindrical screen using the shader
@@ -653,8 +606,15 @@ void GLShutdown(void)
 	glDeleteProgram(shader_program);
 	glDeleteShader(fs);
 	glDeleteShader(vs);
-	glDeleteBuffers(1, &vbo);
-	glDeleteVertexArrays(1, &vao[0]);
-	glDeleteVertexArrays(1, &vao[1]);
+
+	// Deallocate mesh data
+	ColladaInterface::freeGeometries(&geom_vec);
+
+	// Deallocate OpenGL objects
+	glDeleteBuffers(num_objects, vbos);
+	glDeleteBuffers(3 * num_objects + 1, vaos);
+	delete(vbos);
+	delete(vaos);
+
 	CloseOffset();
 }

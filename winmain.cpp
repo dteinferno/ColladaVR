@@ -269,12 +269,12 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 			closed = 1;
 			olsdir = 0;
 		}
-		if (netTime > 1 && netTime < 0.5 * 60)
+		if (netTime > 1 && netTime < 0.1 * 60)
 		{
 			closed = 1;		
 			olsdir = 0;
 		}
-		if (netTime > 0.5 * 60 && netTime < 4.5 * 60)
+		if (netTime > 0.1 * 60 && netTime < 4.5 * 60)
 		{
 			closed = 1;
 			olsdir = 1;
