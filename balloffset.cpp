@@ -169,35 +169,23 @@ void TreadMillDat()
 		BallOffsetFor += deltaFor*cosf(BallOffsetRot * M_PI / 180) + deltaSide*sinf(BallOffsetRot * M_PI / 180);
 		BallOffsetSide += deltaFor*sinf(BallOffsetRot * M_PI / 180) - deltaSide*cosf(BallOffsetRot * M_PI / 180);
 
-		// Apply barriers to keep the fly from going out of the arena or reaching an object
-		if (pow(BallOffsetFor, 2) + pow(BallOffsetSide, 2) > pow(18, 2))
-		{
-			BoundaryStopCorrection = pow(18, 2) / (pow(BallOffsetFor, 2) + pow(BallOffsetSide, 2));
-			BallOffsetFor = BoundaryStopCorrection * BallOffsetFor;
-			BallOffsetSide = BoundaryStopCorrection * BallOffsetSide;
-		}
+		float innerscale = 0.9f;
+		float outerscale = 1.1f;
 
-		if (pow(BallOffsetSide - 6, 2) + pow(BallOffsetFor, 2) < pow(1.5, 2))
+		for (int obj = 0; obj<trans_vec.size(); obj++)
 		{
-			BoundaryStopCorrection = pow(1.5, 2) / (pow(BallOffsetFor, 2) + pow((BallOffsetSide - 6), 2));
-			BallOffsetFor = BoundaryStopCorrection * BallOffsetFor;
-			BallOffsetSide = BoundaryStopCorrection * (BallOffsetSide - 6) + 6;
-		}
-
-
-		if (pow(BallOffsetSide + 6, 2) + pow(BallOffsetFor, 2) < pow(1.5, 2))
-		{
-			BoundaryStopCorrection = pow(1.5, 2) / (pow(BallOffsetFor, 2) + pow((BallOffsetSide + 6), 2));
-			BallOffsetFor = BoundaryStopCorrection * BallOffsetFor;
-			BallOffsetSide = BoundaryStopCorrection * (BallOffsetSide + 6) - 6;
-		}
-
-		// Unused barriers for different objects
-		if (0)
-		{
-			if (pow(BallOffsetFor, 2) + pow(BallOffsetSide, 2) < pow(1.5, 2))
+			// Apply barriers to keep the fly from going out of the arena or reaching an object
+			if (pow(BallOffsetFor - trans_vec[obj].trans_data[0], 2) + pow(BallOffsetSide - trans_vec[obj].trans_data[1], 2) > pow(trans_vec[obj].scale_data[0], 2)
+				& pow(BallOffsetFor - trans_vec[obj].trans_data[0], 2) + pow(BallOffsetSide - trans_vec[obj].trans_data[1], 2) < outerscale*pow(trans_vec[obj].scale_data[0], 2))
 			{
-				BoundaryStopCorrection = pow(1.5, 2) / (pow(BallOffsetFor, 2) + pow(BallOffsetSide, 2));
+				BoundaryStopCorrection = outerscale*pow(trans_vec[obj].scale_data[0], 2) / (pow(BallOffsetFor - trans_vec[obj].trans_data[0], 2) + pow(BallOffsetSide - trans_vec[obj].trans_data[1], 2));
+				BallOffsetFor = BoundaryStopCorrection * BallOffsetFor;
+				BallOffsetSide = BoundaryStopCorrection * BallOffsetSide;
+			}
+			if (pow(BallOffsetFor - trans_vec[obj].trans_data[0], 2) + pow(BallOffsetSide - trans_vec[obj].trans_data[1], 2) < pow(trans_vec[obj].scale_data[0], 2)
+				& pow(BallOffsetFor - trans_vec[obj].trans_data[0], 2) + pow(BallOffsetSide - trans_vec[obj].trans_data[1], 2) > innerscale*pow(trans_vec[obj].scale_data[0], 2))
+			{
+				BoundaryStopCorrection = innerscale*pow(trans_vec[obj].scale_data[0], 2) / (pow(BallOffsetFor - trans_vec[obj].trans_data[0], 2) + pow(BallOffsetSide - trans_vec[obj].trans_data[1], 2));
 				BallOffsetFor = BoundaryStopCorrection * BallOffsetFor;
 				BallOffsetSide = BoundaryStopCorrection * BallOffsetSide;
 			}

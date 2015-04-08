@@ -13,7 +13,7 @@
 #include "colladainterface.h"
 
 // Define constants related to the shapes
-float dist2stripe = 10;
+float dist2stripe = 20;
 float fovAng = 80 * M_PI / 180;
 float numAng = 100.0f;
 
@@ -297,18 +297,6 @@ void InitOpenGL(void)
 	ColladaInterface::readTextures(&tex_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
 	num_images = (int)tex_vec.size();
 
-	FILE* test;
-	fopen_s(&test, "test.txt", "w");
-	for (int tests = 0; tests < num_images; tests++)
-	{
-		fprintf_s(test, "Texture name: %s\n", tex_vec[tests].name.c_str());
-	}
-	for (int tests = 0; tests < num_objects; tests++)
-	{
-		fprintf_s(test, "Texture name: %s\n", geom_vec[tests].texture.c_str());
-	}
-	fclose(test);
-
 	// Create a texture array
 	tex = new GLuint[num_images+4];
 	glGenTextures(num_images+4, tex);
@@ -338,7 +326,7 @@ void InitOpenGL(void)
 	ColladaInterface::readImages(&im_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
 	for (int texs = 0; texs < num_images; texs++)
 	{
-		if (tex_vec[texs].texfname.size() > 0)
+		if (tex_vec[texs].texfname != "")
 		{
 			for (int ims = 0; ims < im_vec.size(); ims++)
 			{
@@ -474,8 +462,8 @@ void RenderFrame(int direction)
 	// Map the textures onto a rectangle/window that spans all three projectors and apply the appropriate shader distortion corrections
 	{
 		// Allow the different colors/textures to be blended
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_ONE, GL_ONE);
+		//glEnable(GL_BLEND);
+		//glBlendFunc(GL_ONE, GL_ONE);
 
 		// Clear the screen and apply
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

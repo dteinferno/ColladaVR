@@ -226,6 +226,10 @@ void ColladaInterface::readTextures(std::vector<ColTex>* v, const char* filename
 			texfname = textures->FirstChildElement("profile_COMMON")->FirstChildElement("newparam")->FirstChildElement("surface")->FirstChildElement("init_from");
 			data.texfname = texfname->GetText();
 		}
+		else
+		{
+			data.texfname = "";
+		}
 		
 		// Get out the color
 		color = textures->FirstChildElement("profile_COMMON")->FirstChildElement("technique")->FirstChildElement("phong")->FirstChildElement("specular")->FirstChildElement("color");

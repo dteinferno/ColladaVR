@@ -257,7 +257,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 			srand(time(0));
 			io_mutex.lock();
 			BallOffsetRot = fmod(rand(), 180) - 90;
-			BallOffsetFor = 0.0f;//-dist2stripe*0.5;
+			BallOffsetFor = -dist2stripe*0.5;
 			BallOffsetSide = 0.0f;
 			io_mutex.unlock();
 			randomreset = 0;

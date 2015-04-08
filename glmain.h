@@ -60,6 +60,9 @@ extern float BallOffsetRotNow;
 extern float BallOffsetForNow;
 extern float BallOffsetSideNow;
 
+// Variable to hold the translation and scaling values
+extern std::vector<ColTrans> trans_vec;
+
 // Initialize the OpenGL buffers, etc...
 void InitOpenGL(void);
 
