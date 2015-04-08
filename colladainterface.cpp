@@ -6,7 +6,8 @@ char array_types[7][15] = { "float_array", "int_array", "bool_array", "Name_arra
 void ColladaInterface::readGeometries(std::vector<ColGeom>* v, const char* filename) {
 
 	TiXmlElement *mesh, *polylist, *vertices, *vinput, *input, *source;
-	const char* texture_name;
+	std::string texture_name;
+	unsigned int lName;
 	std::string attrib_name, source_name;
 	int prim_count, num_indices;
 
@@ -32,10 +33,12 @@ void ColladaInterface::readGeometries(std::vector<ColGeom>* v, const char* filen
 			// Extract vertex, normal, and texture information from the polylist
 			polylist = mesh->FirstChildElement("polylist");
 
-			// Determine the texture name
-			texture_name = polylist->Attribute("material");
-			if (texture_name != NULL)
+			// Determine the texture name			
+			if (polylist->Attribute("material") != NULL)
 			{
+				texture_name = polylist->Attribute("material");
+				lName = texture_name.size();
+				texture_name = texture_name.erase(lName - 9, lName);
 				data.texture = texture_name;
 			}
 			else
@@ -112,6 +115,57 @@ void ColladaInterface::readGeometries(std::vector<ColGeom>* v, const char* filen
 	}
 }
 
+void ColladaInterface::readTransformations(std::vector<ColTrans>* v, const char* filename) {
+
+	TiXmlElement *node, *translate, *scale;
+	char * transtext, *scaletext;
+	char *trans_next_token = NULL;
+	char *scale_next_token = NULL;
+
+	// Create new transformation
+	ColTrans data;
+
+	// Create document and load COLLADA file
+	TiXmlDocument doc(filename);
+	doc.LoadFile();
+	TiXmlElement* visual_scene =
+		doc.RootElement()->FirstChildElement("library_visual_scenes")->FirstChildElement("visual_scene");
+
+	// Iterate through node elements 
+	node = visual_scene->FirstChildElement("node");
+	while (node != NULL) {
+
+		// Extract the object name
+		data.name = node->Attribute("name");
+
+		// Extract the transformation values
+		translate = node->FirstChildElement("translate");
+		transtext = (char*)(translate->GetText()); // Read array values
+		data.trans_data = (float *) malloc(3 * sizeof(float));
+
+		// Read the float values
+		((float*)data.trans_data)[0] = atof(strtok_s(transtext, " ", &trans_next_token));
+		for (unsigned int index = 1; index<3; index++) {
+			((float*)data.trans_data)[index] = atof(strtok_s(NULL, " ", &trans_next_token));
+		}
+
+		// Extract the scale values
+		scale = node->FirstChildElement("scale");
+		scaletext = (char*)(scale->GetText()); // Read array values
+		data.scale_data = (float *)malloc(3 * sizeof(float));
+
+		// Read the float values
+		((float*)data.scale_data)[0] = atof(strtok_s(scaletext, " ", &scale_next_token));
+		for (unsigned int index = 1; index<3; index++) {
+			((float*)data.scale_data)[index] = atof(strtok_s(NULL, " ", &scale_next_token));
+		}
+
+		v->push_back(data);
+
+		node = node->NextSiblingElement("node");
+	}
+}
+
 void ColladaInterface::readImages(std::vector<ColIm>* v, const char* filename) {
 
 	TiXmlElement *imagename;
@@ -139,32 +193,57 @@ void ColladaInterface::readImages(std::vector<ColIm>* v, const char* filename) {
 
 }
 
-//void ColladaInterface::readTextures(std::vector<ColIm>* v, const char* filename) {
-//
-//	TiXmlElement *texturename;
-//	unsigned tex_name;
-//	char* text;
-//
-//	// Create new texture image
-//	ColTex data;
-//
-//	// Create document and load COLLADA file
-//	TiXmlDocument doc(filename);
-//	doc.LoadFile();
-//	TiXmlElement* textures =
-//		doc.RootElement()->FirstChildElement("library_effects")->FirstChildElement("effect");
-//
-//	// Extract the texture label
-//	data.name = textures->Attribute("id");
-//
-//	// Read the texture filename
-//	imagename = images->FirstChildElement("init_from");
-//	text = (char*)(imagename->GetText());
-//	data.imageloc = text;
-//
-//	v->push_back(data);
-//
-//}
+void ColladaInterface::readTextures(std::vector<ColTex>* v, const char* filename) {
+
+	TiXmlElement *texfname, *color;
+	char * text;
+	char *next_token = NULL;
+
+	std::string texture_name;
+	unsigned int lName;
+	
+	// Create new texture image
+	ColTex data;
+
+	// Create document and load COLLADA file
+	TiXmlDocument doc(filename);
+	doc.LoadFile();
+	TiXmlElement* textures =
+		doc.RootElement()->FirstChildElement("library_effects")->FirstChildElement("effect");
+
+	while (textures != NULL) {
+
+		// Extract the texture label
+		texture_name = textures->Attribute("id");
+		lName = texture_name.size();
+		texture_name = texture_name.erase(lName - 7, lName);
+		data.name = texture_name;
+
+		// Extract the texture filename
+		
+		if (textures->FirstChildElement("profile_COMMON")->FirstChildElement("newparam") != NULL)
+		{
+			texfname = textures->FirstChildElement("profile_COMMON")->FirstChildElement("newparam")->FirstChildElement("surface")->FirstChildElement("init_from");
+			data.texfname = texfname->GetText();
+		}
+		
+		// Get out the color
+		color = textures->FirstChildElement("profile_COMMON")->FirstChildElement("technique")->FirstChildElement("phong")->FirstChildElement("specular")->FirstChildElement("color");
+		text = (char*)(color->GetText()); // Read array values
+		data.RGB = (float *)malloc(3 * sizeof(float));
+
+		// Read the float values
+		((float*)data.RGB)[0] = atof(strtok_s(text, " ", &next_token));
+		for (unsigned int index = 1; index<3; index++) {
+			((float*)data.RGB)[index] = atof(strtok_s(NULL, " ", &next_token));
+		}
+
+
+		v->push_back(data);
+
+		textures = textures->NextSiblingElement("effect");
+	}
+}
 
 void ColladaInterface::freeGeometries(std::vector<ColGeom>* v) {
 

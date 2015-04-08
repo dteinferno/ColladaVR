@@ -131,8 +131,10 @@ const char* fragment_shader =
 // Define the OpenGL constants
 std::vector<ColGeom> geom_vec;    // Vector containing COLLADA meshes
 int num_objects;                  // Number of meshes in the vector
-std::vector<ColIm> im_vec;    // Vector containing COLLADA texture images
+std::vector<ColTrans> trans_vec; // Vector containing COLLADA transformations
+std::vector<ColTex> tex_vec;    // Vector containing COLLADA textures
 int num_images;                  // Number of images in the vector
+std::vector<ColIm> im_vec;    // Vector containing COLLADA texture images
 GLuint *vaos, *vbos, *ebos;              // OpenGL vertex objects
 GLuint vs;
 GLuint fs;
@@ -147,7 +149,7 @@ glm::mat4 ViewMatrix;
 GLuint ViewID;
 glm::mat4 ModelMatrix;
 GLuint ModelID;
-
+glm::mat4 TransMatrix;
 
 // InitOpenGL: initializes OpenGL; defines buffers, constants, etc...
 void InitOpenGL(void)
@@ -237,6 +239,9 @@ void InitOpenGL(void)
 		glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 	}
 
+	// Get out the Collada transformations
+	ColladaInterface::readTransformations(&trans_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
+
 	// Create our distorted screen
 	// Initialize the vertex array object
 	glBindVertexArray(vaos[num_objects]);
@@ -289,8 +294,20 @@ void InitOpenGL(void)
 	glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
 
 	// Initialize COLLADA textures
-	ColladaInterface::readImages(&im_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
-	num_images = (int)im_vec.size();
+	ColladaInterface::readTextures(&tex_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
+	num_images = (int)tex_vec.size();
+
+	FILE* test;
+	fopen_s(&test, "test.txt", "w");
+	for (int tests = 0; tests < num_images; tests++)
+	{
+		fprintf_s(test, "Texture name: %s\n", tex_vec[tests].name.c_str());
+	}
+	for (int tests = 0; tests < num_objects; tests++)
+	{
+		fprintf_s(test, "Texture name: %s\n", geom_vec[tests].texture.c_str());
+	}
+	fclose(test);
 
 	// Create a texture array
 	tex = new GLuint[num_images+4];
@@ -317,24 +334,42 @@ void InitOpenGL(void)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	}
 
-
-	// Load a texture using the SOIL loader
-	int texWidth, texHeight;
-	const char * texfname;
-	unsigned char* texImage;
-	FILE *fnstr;
-	for (int i = 0; i < num_images; i++) {
-		texfname = im_vec[i].imageloc.c_str();
-		texImage = SOIL_load_image(texfname, &texWidth, &texHeight, 0, SOIL_LOAD_RGB);
-		glBindTexture(GL_TEXTURE_2D, tex[4 + i]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, texImage);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	// Generate textures from Collada file
+	ColladaInterface::readImages(&im_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
+	for (int texs = 0; texs < num_images; texs++)
+	{
+		if (tex_vec[texs].texfname.size() > 0)
+		{
+			for (int ims = 0; ims < im_vec.size(); ims++)
+			{
+				if (tex_vec[texs].texfname == im_vec[ims].imagename)
+				{
+					// Load a texture using the SOIL loader
+					int texWidth, texHeight;
+					const char * texfname;
+					unsigned char* texImage;
+					FILE *fnstr;
+					texfname = im_vec[ims].imageloc.c_str();
+					texImage = SOIL_load_image(texfname, &texWidth, &texHeight, 0, SOIL_LOAD_RGB);
+					glBindTexture(GL_TEXTURE_2D, tex[4 + texs]);
+					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, texImage);
+					SOIL_free_image_data(texImage);
+				}
+			}
+		}
+		else
+		{
+			glBindTexture(GL_TEXTURE_2D, tex[4 + texs]);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_FLOAT, tex_vec[texs].RGB);
+		}
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-		SOIL_free_image_data(texImage);
 	}
+
+
+
 
 	// Pull out the cylindrical distortion switch uniform from the shader
 	cylLocation = glGetUniformLocation(shader_program, "cyl");
@@ -404,13 +439,30 @@ void RenderFrame(int direction)
 			ModelMatrix =
 				glm::rotate(identity, BallOffsetRotNow, glm::vec3(0.0f, 0.0f, 1.0f)) *
 				glm::translate(identity, glm::vec3(-BallOffsetSideNow, -BallOffsetForNow, 0.0f));
-			glUniformMatrix4fv(ModelID, 1, false, glm::value_ptr(ModelMatrix));
 			
+			//Get the object transformation
+			float xScale,yScale,zScale,xRot,yRot,zRot,xTrans,yTrans,zTrans;
+
 			// Draw each object
 			for (int i = 0; i<num_objects; i++) {
-				glBindTexture(GL_TEXTURE_2D, tex[0]); // Bind the appropriate texture
-				glBindVertexArray(vaos[i]);
-				glDrawArrays(GL_TRIANGLES, 0, geom_vec[i].index_count);
+				// Get the scaling and translation for the object
+				for (int ts = 0; ts < num_objects; ts++) {
+					if (trans_vec[ts].name == geom_vec[i].name){
+						TransMatrix = glm::rotate(identity, 180.0f, glm::vec3(1.0f, 0.0f, 0.0f)) *
+							glm::translate(identity, glm::vec3(trans_vec[ts].trans_data[0], trans_vec[ts].trans_data[1], trans_vec[ts].trans_data[2])) *
+							glm::scale(identity, glm::vec3(trans_vec[ts].scale_data[0], trans_vec[ts].scale_data[1], trans_vec[ts].scale_data[2]));
+					}
+				}
+				glUniformMatrix4fv(ModelID, 1, false, glm::value_ptr(ModelMatrix*TransMatrix));
+				for (int ims = 0; ims < num_images; ims++)
+				{
+					if (geom_vec[i].texture == tex_vec[ims].name)
+					{
+						glBindTexture(GL_TEXTURE_2D, tex[4 + ims]); // Bind the appropriate texture
+						glBindVertexArray(vaos[i]);
+						glDrawArrays(GL_TRIANGLES, 0, geom_vec[i].index_count);
+					}
+				}
 			}
 		}
 		// Capture the stripe as a texture
