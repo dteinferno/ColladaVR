@@ -133,7 +133,7 @@ std::vector<ColGeom> geom_vec;    // Vector containing COLLADA meshes
 int num_objects;                  // Number of meshes in the vector
 std::vector<ColIm> im_vec;    // Vector containing COLLADA texture images
 int num_images;                  // Number of images in the vector
-GLuint *vaos, *vbos;              // OpenGL vertex objects
+GLuint *vaos, *vbos, *ebos;              // OpenGL vertex objects
 GLuint vs;
 GLuint fs;
 GLuint shader_program;
@@ -148,20 +148,6 @@ GLuint ViewID;
 glm::mat4 ModelMatrix;
 GLuint ModelID;
 
-// Constants for loading objects from the shader
-GLuint vbo_obj1;
-GLuint uvbuffer_obj1;
-GLuint normalsbuffer_obj1;
-std::vector<glm::vec3> vertices_obj1;
-std::vector<glm::vec2> uvs_obj1;
-std::vector<glm::vec3> normals_obj1;
-
-GLuint vbo_obj2;
-GLuint uvbuffer_obj2;
-GLuint normalsbuffer_obj2;
-std::vector<glm::vec3> vertices_obj2;
-std::vector<glm::vec2> uvs_obj2;
-std::vector<glm::vec3> normals_obj2;
 
 // InitOpenGL: initializes OpenGL; defines buffers, constants, etc...
 void InitOpenGL(void)
@@ -190,54 +176,65 @@ void InitOpenGL(void)
 	glLinkProgram(shader_program);
 	glUseProgram(shader_program);
 
-	// Initialize COLLADA geometries
-	ColladaInterface::readGeometries(&geom_vec, "sphere.dae");
-	//ColladaInterface::readGeometries(&geom_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
-	num_objects = (int)geom_vec.size();
-
+	// Pointers to the shader position, normal, and texture variables
 	GLint posAttrib;
 	GLint normAttrib;
 	GLint texAttrib;
+
+	// Initialize COLLADA geometries
+	ColladaInterface::readGeometries(&geom_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
+	num_objects = (int)geom_vec.size();
 
 	// Create a VAO for each geometry
 	vaos = new GLuint[num_objects+1];
 	glGenVertexArrays(num_objects+1, vaos);
 
-	// Create a VBO for each geometry
+	// Create a VBO for each geometry - one each for vertices, normals, and texture coordinates
 	vbos = new GLuint[3 * num_objects + 1];
 	glGenBuffers(3 * num_objects + 1, vbos);
 
-	// Configure VBOs to hold positions and normals for each geometry
+	// Initialize the element array buffer
+	ebos = new GLuint[num_objects + 1];;
+	glGenBuffers(num_objects + 1, ebos);
+
+	// Check if the object loaded properly
+	bool resdat;
+
+	// Configure VBOs to hold positions, texture coordinates, and normals for each geometry
 	for (int i = 0; i<num_objects; i++) {
+
+		// Vectors to hold the info
+		std::vector<glm::vec3> vertices_obj;
+		std::vector<glm::vec2> uvs_obj;
+		std::vector<glm::vec3> normals_obj;
 
 		glBindVertexArray(vaos[i]);
 
-		// Set vertex coordinate data
-		glBindBuffer(GL_ARRAY_BUFFER, vbos[3 * i]);
-		glBufferData(GL_ARRAY_BUFFER, geom_vec[i].map["POSITION"].size,
-			geom_vec[i].map["POSITION"].data, GL_STATIC_DRAW);
+		// Convert the maps from the Collada file to vectors for OpenGL
+		resdat = loadOBJ(geom_vec[i].map["VERTEX"], geom_vec[i].map["NORMAL"], geom_vec[i].map["TEXCOORD"], geom_vec[i].index_count, geom_vec[i].indices, vertices_obj, uvs_obj, normals_obj);
+		
+
+		// Load the data to the shaders 
+		glBindBuffer(GL_ARRAY_BUFFER, vbos[3*i]);
+		glBufferData(GL_ARRAY_BUFFER, vertices_obj.size() * sizeof(glm::vec3), &vertices_obj[0], GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbos[3*i+1]);
+		glBufferData(GL_ARRAY_BUFFER, uvs_obj.size() * sizeof(glm::vec2), &uvs_obj[0], GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbos[3*i+2]);
+		glBufferData(GL_ARRAY_BUFFER, normals_obj.size() * sizeof(glm::vec3), &normals_obj[0], GL_STATIC_DRAW);
+
+		// Create a pointer for the position
+		glBindBuffer(GL_ARRAY_BUFFER, vbos[3*i]);
 		posAttrib = glGetAttribLocation(shader_program, "position");
 		glEnableVertexAttribArray(posAttrib);
-		glVertexAttribPointer(posAttrib, geom_vec[i].map["POSITION"].stride,
-			geom_vec[i].map["POSITION"].type, GL_FALSE, 0, 0);
+		glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
-		// Set normal vector data
-		glBindBuffer(GL_ARRAY_BUFFER, vbos[3 * i + 1]);
-		glBufferData(GL_ARRAY_BUFFER, geom_vec[i].map["NORMAL"].size,
-			geom_vec[i].map["NORMAL"].data, GL_STATIC_DRAW);
-		//normAttrib = glGetAttribLocation(program, "in_normals");
-		//glVertexAttribPointer(loc, geom_vec[i].map["NORMAL"].stride,
-		//	geom_vec[i].map["NORMAL"].type, GL_FALSE, 0, 0);
-		//glEnableVertexAttribArray(1);
-
-		// Set the texture data
-		//glBindBuffer(GL_ARRAY_BUFFER, vbos[3 * i + 2]);
-		//glBufferData(GL_ARRAY_BUFFER, geom_vec[i].map["TEXTURE"].size,
-		//	geom_vec[i].map["TEXTURE"].data, GL_STATIC_DRAW);
-		//texAttrib = glGetAttribLocation(shader_program, "texcoord");
-		//glEnableVertexAttribArray(texAttrib);
-		//glVertexAttribPointer(texAttrib, geom_vec[i].map["TEXTURE"].stride, geom_vec[i].map["TEXTURE"].type, GL_FALSE, 0, 0);
-
+		// Create a pointer for the texture coordinates
+		glBindBuffer(GL_ARRAY_BUFFER, vbos[3*i+1]);
+		texAttrib = glGetAttribLocation(shader_program, "texcoord");
+		glEnableVertexAttribArray(texAttrib);
+		glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 	}
 
 	// Create our distorted screen
@@ -251,75 +248,34 @@ void InitOpenGL(void)
 	// Define the vertices
 	float vertices[] = {
 		// The first four points are the position, while the final two are the texture coordinates
-		// First set of points is for the undistorted vertical stripe.
-		-2.0f, (float)dist2stripe, -40.0f, 1.0f, 1.0f, 1.0f,
-		-2.0f, (float)dist2stripe, 40.0f, 1.0f, 1.0f, 0.0f,
-		2.0f, (float)dist2stripe, -40.0f, 1.0f, 0.0f, 1.0f,
-		2.0f, (float)dist2stripe, 40.0f, 1.0f, 0.0f, 0.0f,
-
-		// Second set of points for the final display that the texture will be mapped onto.
+		// First set of points for the final display that the texture will be mapped onto.
 		-windowSpan, (float)dist2stripe, -windowSpan / aspect, 1.0f, 0.0f, 1.0f,
 		-windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 0.0f, 0.0f,
 		windowSpan, (float)dist2stripe, -windowSpan / aspect, 1.0f, 1.0f, 1.0f,
 		windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 1.0f, 0.0f,
 
-		// Third set of points for a blinking dot that will trigger the photodiode.
+		// Second set of points for a blinking dot that will trigger the photodiode.
 		-0.95*windowSpan, (float)dist2stripe, windowSpan * (1 / aspect - 0.05), 1.0f, 1.0f, 1.0f,
 		-0.95*windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 1.0f, 0.0f,
 		-windowSpan, (float)dist2stripe, windowSpan * (1 / aspect - 0.05), 1.0f, 0.0f, 1.0f,
 		-windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 0.0f, 0.0f,
-
-		// Add inner ground floor triangle
-		0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-		(float) 0.8*dist2stripe*sin(M_PI / numAng), (float) 0.8*dist2stripe*cos(M_PI / numAng), 1.0f, 1.0f, 0.0f, 1.0f,
-		-(float) 0.8*dist2stripe*sin(M_PI / numAng), (float) 0.8*dist2stripe*cos(M_PI / numAng), 1.0f, 1.0f, 0.0f, 0.0f,
-
-		// Add outer ground floor polygon
-		-(float) 0.95*dist2stripe*sin(M_PI / numAng), (float) 0.95*dist2stripe*cos(M_PI / numAng), 1.0f, 1.0f, 1.0f, 1.0f,
-		-(float)dist2stripe*sin(M_PI / numAng), (float)dist2stripe*cos(M_PI / numAng), 1.0f, 1.0f, 1.0f, 0.0f,
-		(float) 0.95*dist2stripe*sin(M_PI / numAng), (float) 0.95*dist2stripe*cos(M_PI / numAng), 1.0f, 1.0f, 0.0f, 1.0f,
-		(float)dist2stripe*sin(M_PI / numAng), (float)dist2stripe*cos(M_PI / numAng), 1.0f, 1.0f, 0.0f, 0.0f,
-
-		// Add bottom wall points
-		-(float) 0.8*dist2stripe*sin(M_PI / numAng), (float) 0.8*dist2stripe*cos(M_PI / numAng), 3.0f, 1.0f, 1.0f, 1.0f,
-		-(float) 0.95*dist2stripe*sin(M_PI / numAng), (float) 0.95*dist2stripe*cos(M_PI / numAng), 3.0f, 1.0f, 1.0f, 0.0f,
-		(float) 0.8*dist2stripe*sin(M_PI / numAng), (float) 0.8*dist2stripe*cos(M_PI / numAng), 3.0f, 1.0f, 0.0f, 1.0f,
-		(float) 0.95*dist2stripe*sin(M_PI / numAng), (float) 0.95*dist2stripe*cos(M_PI / numAng), 3.0f, 1.0f, 0.0f, 0.0f,
 	};
 
 	// Bind the vertex data to the buffer array
 	glBindBuffer(GL_ARRAY_BUFFER, vbos[2 * num_objects +1]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	// Initialize the element array buffer
-	GLuint ebo;
-	glGenBuffers(1, &ebo);
-
 	// Define the elements for the stripe and the projected screen.
 	GLuint elements[] = {
-		0, 1, 2,
+		2, 1, 0,
 		1, 2, 3,
 
-		6, 5, 4,
-		5, 6, 7,
-
-		8, 9, 10,
-		11, 10, 9,
-
-		12, 13, 14,
-		15, 16, 17,
-		16, 17, 18,
-
-		19, 20, 21,
-		20, 21, 22,
-		13, 14, 19,
-		14, 19, 21,
-		15, 17, 20,
-		17, 20, 22,
+		4, 5, 6,
+		7, 6, 5,
 	};
 
 	//Bind the element data to the array.
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[num_objects + 1]);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 
 	// Create a pointer for the position
@@ -443,9 +399,6 @@ void RenderFrame(int direction)
 				BallOffsetForNow = 0.0f;
 				BallOffsetSideNow = 0.0f;
 			}
-			float NormObjVectX = BallOffsetSideNow / sqrt(pow(BallOffsetForNow, 2) + pow(BallOffsetSideNow, 2));
-			float NormObjVectY = BallOffsetForNow / sqrt(pow(BallOffsetForNow, 2) + pow(BallOffsetSideNow, 2));
-			float DotProd = NormObjVectX * sin(BallOffsetRotNow) + NormObjVectY * cos(BallOffsetRotNow);
 
 			// Apply the movement
 			ModelMatrix =
@@ -453,20 +406,11 @@ void RenderFrame(int direction)
 				glm::translate(identity, glm::vec3(-BallOffsetSideNow, -BallOffsetForNow, 0.0f));
 			glUniformMatrix4fv(ModelID, 1, false, glm::value_ptr(ModelMatrix));
 			
-			if (closed)
-			{
-				// Draw elements of each mesh in the vector
-				for (int i = 0; i<num_objects; i++) {
-					glBindTexture(GL_TEXTURE_2D, tex[4]); // Bind the appropriate color texture
-					glBindVertexArray(vaos[i]);
-					glDrawElements(geom_vec[i].primitive, geom_vec[i].index_count,
-						GL_UNSIGNED_SHORT, geom_vec[i].indices);
-				}
-			}
-			else
-			{
-				glBindVertexArray(vaos[num_objects]);
-				glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			// Draw each object
+			for (int i = 0; i<num_objects; i++) {
+				glBindTexture(GL_TEXTURE_2D, tex[0]); // Bind the appropriate texture
+				glBindVertexArray(vaos[i]);
+				glDrawArrays(GL_TRIANGLES, 0, geom_vec[i].index_count);
 			}
 		}
 		// Capture the stripe as a texture
@@ -496,7 +440,7 @@ void RenderFrame(int direction)
 		// Draw the rectangle
 		for (int n = 0; n < 3; n++) {
 			glBindTexture(GL_TEXTURE_2D, tex[1+n]);
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(GLfloat)));
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
 		}
 
 	}
@@ -508,85 +452,120 @@ void RenderFrame(int direction)
 		glUniform1f(cylLocation, (float) 0.0f); // Initially, we want an undistorted projection
 		glUniform1f(ProjNumber, (int)100);  // No brightness correction the first time
 		glBindTexture(GL_TEXTURE_2D, tex[0]);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(12 * sizeof(GLfloat)));
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(GLfloat)));
 
 }
 
-// Load a Blender generated object
-bool loadOBJ( const char * path, std::vector<glm::vec3> & out_vertices, std::vector<glm::vec2> & out_uvs, std::vector<glm::vec3> & out_normals)
+// Convert map data from a Collada file to vector data
+bool loadOBJ(SourceData Vertex, SourceData Normal, SourceData Texcoord, int numIndices, unsigned short* Indices, std::vector<glm::vec3> & out_vertices, std::vector<glm::vec2> & out_uvs, std::vector<glm::vec3> & out_normals)
 {
 	// Indices of the vertices, texture coordinates, and normals
 	std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
+
 	// Temporary vectors to store the values from each line
 	std::vector<glm::vec3> temp_vertices;
 	std::vector<glm::vec2> temp_uvs;
 	std::vector<glm::vec3> temp_normals;
 
-	// Open the file
-	FILE * objFile;
-	fopen_s(&objFile, path, "r");
-	// Pull the data out of the file
-	while (1){
+	// How to increment the indices
+	int incInd;
 
-		char lineHeader[128];
-		// read the first word of the line
-		int res = fscanf_s(objFile, "%s", lineHeader, _countof(lineHeader));
-		if (res == EOF){
-			break; // EOF = End Of File. Quit the loop.
-		}
-		// parse lineHeader
-		if (strcmp(lineHeader, "v") == 0){
-			glm::vec3 vertex;
-			fscanf_s(objFile, "%f %f %f\n", &vertex.x, &vertex.y, &vertex.z);
-			temp_vertices.push_back(vertex);
-		}
-		else if (strcmp(lineHeader, "vt") == 0){
+	// Get out the vertex data
+	float * vertexData = (float *) malloc(Vertex.size);
+	vertexData = (float *) Vertex.data;
+	for (int vertStep = 0; vertStep < Vertex.size/ 3 / sizeof(float); vertStep++)
+	{
+		glm::vec3 vertex;
+		vertex.x = vertexData[3 * vertStep];
+		vertex.y = vertexData[3 * vertStep + 1];
+		vertex.z = vertexData[3 * vertStep + 2];
+		temp_vertices.push_back(vertex);
+	}
+
+	// Get out the texture data if it exists. Otherwise set arbitrary texture coordinates.
+	if (Texcoord.size > 0)
+	{
+		float * textureData = (float *)malloc(Texcoord.size);
+		textureData = (float *)Texcoord.data;
+		for (int texStep = 0; texStep < Texcoord.size / 2 / sizeof(float); texStep++)
+		{
 			glm::vec2 uv;
-			fscanf_s(objFile, "%f %f\n", &uv.x, &uv.y);
+			uv.x = textureData[2 * texStep];
+			uv.y = textureData[2 * texStep + 1];
 			temp_uvs.push_back(uv);
 		}
-		else if (strcmp(lineHeader, "vn") == 0){
-			glm::vec3 normal;
-			fscanf_s(objFile, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
-			temp_normals.push_back(normal);
+		incInd = 3;
+	}
+	else
+	{
+		glm::vec2 uv;
+		uv.x = 0.0f;
+		uv.y = 0.0f;
+		temp_uvs.push_back(uv);
+		incInd = 2;
+	}
+
+	// Get out the normal data
+	float * normalData = (float *)malloc(Normal.size);
+	normalData = (float *)Normal.data;
+	for (int normStep = 0; normStep < Normal.size / 3 / sizeof(float); normStep++)
+	{
+		glm::vec3 normal;
+		normal.x = normalData[3 * normStep];
+		normal.y = normalData[3 * normStep + 1];
+		normal.z = normalData[3 * normStep + 2];
+		temp_normals.push_back(normal);
+	}
+
+	// Sort the indices
+	for (int indexStep = 0; indexStep < numIndices / 3; indexStep++)
+	{
+		std::string vertex1, vertex2, vertex3;
+		unsigned int vertexIndex[3], uvIndex[3], normalIndex[3];
+
+		vertexIndex[0] = Indices[incInd * 3 * indexStep];
+		normalIndex[0] = Indices[incInd * 3 * indexStep + 1];
+		vertexIndex[1] = Indices[incInd * 3 * indexStep + incInd];
+		normalIndex[1] = Indices[incInd * 3 * indexStep + incInd + 1];
+		vertexIndex[2] = Indices[incInd * 3 * indexStep + incInd * 2];
+		normalIndex[2] = Indices[incInd * 3 * indexStep + incInd * 2 + 1];
+
+		if (Texcoord.size > 0)
+		{
+			uvIndex[0] = Indices[incInd * 3 * indexStep + 2];
+			uvIndex[1] = Indices[incInd * 3 * indexStep + incInd + 2];
+			uvIndex[2] = Indices[incInd * 3 * indexStep + incInd * 2 + 2];
 		}
-		else if (strcmp(lineHeader, "f") == 0){
-			std::string vertex1, vertex2, vertex3;
-			unsigned int vertexIndex[3], uvIndex[3], normalIndex[3];
-			int matches = fscanf_s(objFile, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &uvIndex[0], &normalIndex[0], &vertexIndex[1], &uvIndex[1], &normalIndex[1], &vertexIndex[2], &uvIndex[2], &normalIndex[2]);
-			if (matches != 9){
-				return false;
-			}
-			vertexIndices.push_back(vertexIndex[0]);
-			vertexIndices.push_back(vertexIndex[1]);
-			vertexIndices.push_back(vertexIndex[2]);
-			uvIndices.push_back(uvIndex[0]);
-			uvIndices.push_back(uvIndex[1]);
-			uvIndices.push_back(uvIndex[2]);
-			normalIndices.push_back(normalIndex[0]);
-			normalIndices.push_back(normalIndex[1]);
-			normalIndices.push_back(normalIndex[2]);
-		}
-		else{
-			// Probably a comment, eat up the rest of the line
-			char stupidBuffer[1000];
-			fgets(stupidBuffer, 1000, objFile);
+		else
+		{
+			uvIndex[0] = 0;
+			uvIndex[1] = 0;
+			uvIndex[2] = 0;
 		}
 
+		vertexIndices.push_back(vertexIndex[0]);
+		vertexIndices.push_back(vertexIndex[1]);
+		vertexIndices.push_back(vertexIndex[2]);
+		uvIndices.push_back(uvIndex[0]);
+		uvIndices.push_back(uvIndex[1]);
+		uvIndices.push_back(uvIndex[2]);
+		normalIndices.push_back(normalIndex[0]);
+		normalIndices.push_back(normalIndex[1]);
+		normalIndices.push_back(normalIndex[2]);
 	}
 
 	// For each vertex of each triangle
-	for (unsigned int i = 0; i<vertexIndices.size(); i++){
-
+	for (unsigned int i = 0; i<vertexIndices.size(); i++)
+	{
 		// Get the indices of its attributes
 		unsigned int vertexIndex = vertexIndices[i];
 		unsigned int uvIndex = uvIndices[i];
 		unsigned int normalIndex = normalIndices[i];
 
 		// Get the attributes thanks to the index
-		glm::vec3 vertex = temp_vertices[vertexIndex - 1];
-		glm::vec2 uv = temp_uvs[uvIndex - 1];
-		glm::vec3 normal = temp_normals[normalIndex - 1];
+		glm::vec3 vertex = temp_vertices[vertexIndex];
+		glm::vec2 uv = temp_uvs[uvIndex];
+		glm::vec3 normal = temp_normals[normalIndex];
 
 		// Put the attributes in buffers
 		out_vertices.push_back(vertex);

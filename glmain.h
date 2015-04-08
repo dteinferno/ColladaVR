@@ -38,6 +38,9 @@ GLEW has been tested on a variety of operating systems, including Windows, Linux
 // Load Simple OpenGL Image Library
 #include "SOIL.h"
 
+// Load Collada Loader
+#include "colladainterface.h"
+
 // Define pi for use in converting degrees to radians
 #ifndef M_PI
 #define M_PI 3.1415926535
@@ -67,4 +70,4 @@ void RenderFrame(int direction);
 void GLShutdown(void);
 
 // Load an object
-bool loadOBJ(const char * path, std::vector<glm::vec3> & out_vertices, std::vector<glm::vec2> & out_uvs, std::vector<glm::vec3> & out_normals);
+bool loadOBJ(SourceData Vertex, SourceData Normal, SourceData Texcoord, int numIndices, unsigned short* Indices, std::vector<glm::vec3> & out_vertices, std::vector<glm::vec2> & out_uvs, std::vector<glm::vec3> & out_normals);

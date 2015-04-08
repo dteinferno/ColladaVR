@@ -3,15 +3,12 @@
 char array_types[7][15] = { "float_array", "int_array", "bool_array", "Name_array",
 "IDREF_array", "SIDREF_array", "token_array" };
 
-char primitive_types[7][15] = { "lines", "linestrips", "polygons", "polylist",
-"triangles", "trifans", "tristrips" };
-
 void ColladaInterface::readGeometries(std::vector<ColGeom>* v, const char* filename) {
 
-	TiXmlElement *mesh, *vertices, *input, *source, *primitive, *material;
-	std::string source_name;
+	TiXmlElement *mesh, *polylist, *vertices, *vinput, *input, *source;
+	const char* texture_name;
+	std::string attrib_name, source_name;
 	int prim_count, num_indices;
-	unsigned tex_name;
 
 	// Create document and load COLLADA file
 	TiXmlDocument doc(filename);
@@ -25,25 +22,57 @@ void ColladaInterface::readGeometries(std::vector<ColGeom>* v, const char* filen
 		// Create new geometry
 		ColGeom data;
 
-		// Set the geometry name
-		data.name = geometry->Attribute("id");
+		// Get the geometry name
+		data.name = geometry->Attribute("name");
 
 		// Iterate through mesh elements 
 		mesh = geometry->FirstChildElement("mesh");
 		while (mesh != NULL) {
-			vertices = mesh->FirstChildElement("vertices");
-			input = vertices->FirstChildElement("input");
 
-			// Iterate through input elements 
+			// Extract vertex, normal, and texture information from the polylist
+			polylist = mesh->FirstChildElement("polylist");
+
+			// Determine the texture name
+			texture_name = polylist->Attribute("material");
+			if (texture_name != NULL)
+			{
+				data.texture = texture_name;
+			}
+			else
+			{
+				data.texture = "NONE";
+			}
+			
+
+			// Detemine the number of elements and set the primitive type
+			polylist->QueryIntAttribute("count", &prim_count);
+			data.primitive = GL_TRIANGLES;
+			num_indices = prim_count * 3;
+			data.index_count = num_indices;
+
+			// Iterate through input elements
+			input = polylist->FirstChildElement("input");
 			while (input != NULL) {
-				source_name = std::string(input->Attribute("source"));
-				source_name = source_name.erase(0, 1);
+
+				attrib_name = input->Attribute("semantic");
+				if (std::string("VERTEX") == attrib_name)
+				{
+					vertices = mesh->FirstChildElement("vertices");
+					vinput = vertices->FirstChildElement("input");
+					source_name = vinput->Attribute("source");
+					source_name = source_name.erase(0, 1);
+				}
+				else
+				{
+					source_name = input->Attribute("source");
+					source_name = source_name.erase(0, 1);
+				}
 				source = mesh->FirstChildElement("source");
 
 				// Iterate through source elements 
 				while (source != NULL) {
 					if (std::string(source->Attribute("id")) == source_name) {
-						data.map[std::string(input->Attribute("semantic"))] = readSource(source);
+						data.map[attrib_name] = readSource(source);
 					}
 
 					source = source->NextSiblingElement("source");
@@ -52,62 +81,28 @@ void ColladaInterface::readGeometries(std::vector<ColGeom>* v, const char* filen
 				input = input->NextSiblingElement("input");
 			}
 
-			// Determine primitive type and texture name
-			for (int i = 0; i<7; i++) {
-				primitive = mesh->FirstChildElement(primitive_types[i]);
-				if (primitive != NULL) {
+			// Read the index values
+			char* text = (char*)(polylist->FirstChildElement("p")->GetText());
+			char *next_token = NULL;
 
-					// Determine number of primitives
-					primitive->QueryIntAttribute("count", &prim_count);
-
-					// Determine primitive type and set count
-					switch (i) {
-					case 0:
-						data.primitive = GL_LINES;
-						num_indices = prim_count * 2;
-						break;
-					case 1:
-						data.primitive = GL_LINE_STRIP;
-						num_indices = prim_count + 1;
-						break;
-					case 3:
-						data.primitive = GL_TRIANGLES;
-						num_indices = prim_count * 3;
-						break;
-					case 4:
-						data.primitive = GL_TRIANGLES;
-						num_indices = prim_count * 3;
-						break;
-					case 5:
-						data.primitive = GL_TRIANGLE_FAN;
-						num_indices = prim_count + 2;
-						break;
-					case 6:
-						data.primitive = GL_TRIANGLE_STRIP;
-						num_indices = prim_count + 2;
-						break;
-					default: std::cout << "Primitive " << primitive_types[i] <<
-						" not supported" << std::endl;
-					}
-					data.index_count = num_indices;
-
-					// Determine the texture name
-					primitive->QueryUnsignedAttribute("material", &tex_name);
-					data.texture = std::to_string(tex_name);
-
-					// Allocate memory for indices
-					data.indices = (unsigned short*)malloc(num_indices * sizeof(unsigned short));
-
-					// Read the index values
-					char* text = (char*)(primitive->FirstChildElement("p")->GetText());
-					char *next_token = NULL;
-					data.indices[0] = (unsigned short)atoi(strtok_s(text, " ",&next_token));
-					for (int index = 1; index<num_indices; index++) {
-						data.indices[index] = (unsigned short)atoi(strtok_s(NULL, " ", &next_token));
-					}
+			// Allocate memory for indices and then get the data
+			if ((int)data.map["TEXCOORD"].size > 0)
+			{
+				data.indices = (unsigned short*)malloc(num_indices * 3 * sizeof(unsigned short));
+				data.indices[0] = (unsigned short)atoi(strtok_s(text, " ", &next_token));
+				for (int index = 1; index < 3 * num_indices; index++) {
+					data.indices[index] = (unsigned short)atoi(strtok_s(NULL, " ", &next_token));
 				}
 			}
-
+			else
+			{
+				data.indices = (unsigned short*)malloc(num_indices * 2 * sizeof(unsigned short));
+				data.indices[0] = (unsigned short)atoi(strtok_s(text, " ", &next_token));
+				for (int index = 1; index < 2 * num_indices; index++) {
+					data.indices[index] = (unsigned short)atoi(strtok_s(NULL, " ", &next_token));
+				}
+			}
+			
 			mesh = mesh->NextSiblingElement("mesh");
 		}
 
@@ -206,7 +201,7 @@ SourceData readSource(TiXmlElement* source) {
 
 			// Find number of values
 			array->QueryUnsignedAttribute("count", &num_vals);
-			source_data.size = num_vals;
+			source_data.size = (int) num_vals;
 
 			// Find stride
 			check = source->FirstChildElement("technique_common")->FirstChildElement("accessor")->QueryUnsignedAttribute("stride", &stride);
