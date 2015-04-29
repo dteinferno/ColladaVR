@@ -205,6 +205,9 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 	strcat_s(syncfnamebuf, 100, "_SYNC.txt");
 	syncfname = syncfnamebuf;
 
+	//Print the Collada filename
+	fprintf(str, "Collada file used: %s\n", ColladaFname);
+
 	// Print local time as a string.
 	char s[30];
 	size_t i;
@@ -257,35 +260,35 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 			srand(time(0));
 			io_mutex.lock();
 			BallOffsetRot = fmod(rand(), 180) - 90;
-			BallOffsetFor = -dist2stripe*0.5;
+			BallOffsetFor = 0.0f;
 			BallOffsetSide = 0.0f;
 			io_mutex.unlock();
 			randomreset = 0;
 		}
 
 		/////////////////////// EXPERIMENT SPECIFICS LIVE HERE /////////////////////////////
-		if (netTime < 1)
-		{
-			closed = 1;
-			olsdir = 0;
-		}
-		if (netTime > 1 && netTime < 0.1 * 60)
+		if (netTime < 15)
 		{
 			closed = 1;		
 			olsdir = 0;
 		}
-		if (netTime > 0.1 * 60 && netTime < 4.5 * 60)
+		if (netTime > 15 && netTime < 4.25 * 60)
 		{
 			closed = 1;
 			olsdir = 1;
 		}
-		if (netTime > 4.5 * 60 && netTime < 5 * 60)
+		if (netTime > 4.25 * 60 && netTime < 4.5 * 60)
 		{
 			closed = 1;
 			olsdir = 0;
 		}
-		if (netTime > 5 * 60)
+
+		if (netTime > 4.5 * 60)
+		{
+			SysShutdown();
 			break;
+		}
+		
 		////////////////////////////////////////////////////////////////////////////////////
 
 		//Switch contexts and draw
@@ -327,7 +330,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 		if (GetAsyncKeyState(VK_ESCAPE) || (netTime > 30 * 60))
 			SysShutdown();
 	}
-	GLShutdown();
+	GLShutdown();	
 	fclose(str);
 	return msg.lParam;
 }

@@ -12,10 +12,12 @@
 #include "balloffset.h"
 #include "colladainterface.h"
 
-// Define constants related to the shapes
+// Point to the COLLADA file
+const char * ColladaFname = "D:\\Environments\\TwoCylV1.dae";
+
+// Define constants related to the projector angles
 float dist2stripe = 20;
 float fovAng = 80 * M_PI / 180;
-float numAng = 100.0f;
 
 // Define offset values (Rotational, Forward, and Lateral)
 float BallOffsetRotNow = 0.0f;
@@ -52,9 +54,9 @@ const char* fragment_shader =
 
 "  float LtoScreen = 6.55;"
 "  float wofScreen = 1.93;"
-"  float proj0power = 1.14;"
-"  float proj1power = 1.07;"
-"  float proj2power = 1.04;"
+"  float proj0power = 0.7;"
+"  float proj1power = 0.8;"
+"  float proj2power = 1;"
 "  float projnorm = min(proj0power, min(proj1power, proj2power));"
 
 "  float angofScreen = 4*3.141592/9;"
@@ -80,6 +82,8 @@ const char* fragment_shader =
 "  float distorts = 0.5*(1+ tan(angofScreen*(distortsinit - 0.5))/tan(0.5*angofScreen));"
 "  float distortt = 0.5 + (distorttinit - 0.5) * cos(0.5 * angofScreen)/cos(angofScreen*(distorts-0.5));"
 
+"  float brightcorrect = 1.243*pow(distorts,4)-1.328*pow(distorts,3) + 0.8553*pow(distorts,2)-0.3047*distorts+0.5221;"
+
 "  distorts = 0.333 * distorts; "
 " if (Texcoord.s > 0.3333)"
 "  distorts = distorts + 0.333;"
@@ -87,8 +91,6 @@ const char* fragment_shader =
 "  distorts = distorts + 0.333;"
 
 "  distortt = distorttinit;"
-
-"  float brightcorrect = 1.243*pow(distorts,4)-1.328*pow(distorts,3) + 0.8553*pow(distorts,2)-0.3047*distorts+0.5221;"
 
 "  if (cyl == 0.0)"
 "  {"
@@ -184,7 +186,7 @@ void InitOpenGL(void)
 	GLint texAttrib;
 
 	// Initialize COLLADA geometries
-	ColladaInterface::readGeometries(&geom_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
+	ColladaInterface::readGeometries(&geom_vec, ColladaFname);
 	num_objects = (int)geom_vec.size();
 
 	// Create a VAO for each geometry
@@ -240,7 +242,7 @@ void InitOpenGL(void)
 	}
 
 	// Get out the Collada transformations
-	ColladaInterface::readTransformations(&trans_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
+	ColladaInterface::readTransformations(&trans_vec, ColladaFname);
 
 	// Create our distorted screen
 	// Initialize the vertex array object
@@ -294,7 +296,7 @@ void InitOpenGL(void)
 	glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
 
 	// Initialize COLLADA textures
-	ColladaInterface::readTextures(&tex_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
+	ColladaInterface::readTextures(&tex_vec, ColladaFname);
 	num_images = (int)tex_vec.size();
 
 	// Create a texture array
@@ -316,14 +318,14 @@ void InitOpenGL(void)
 	// Prep the remaining textures to be used for cylindrical distortion
 	for (int n = 0; n < 3; n++) {
 		glBindTexture(GL_TEXTURE_2D, tex[1 + n]);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	}
 
 	// Generate textures from Collada file
-	ColladaInterface::readImages(&im_vec, "singleObjectForest_1cm4cmCone_12cmHex.dae");
+	ColladaInterface::readImages(&im_vec, ColladaFname);
 	for (int texs = 0; texs < num_images; texs++)
 	{
 		if (tex_vec[texs].texfname != "")
@@ -334,10 +336,12 @@ void InitOpenGL(void)
 				{
 					// Load a texture using the SOIL loader
 					int texWidth, texHeight;
-					const char * texfname;
+					char texfname[100];
+					const char *  texfpath = "D:\\Environments\\";
 					unsigned char* texImage;
 					FILE *fnstr;
-					texfname = im_vec[ims].imageloc.c_str();
+					strncpy_s(texfname, 100, texfpath, strlen(texfpath));
+					strcat_s(texfname, 100, im_vec[ims].imageloc.c_str());
 					texImage = SOIL_load_image(texfname, &texWidth, &texHeight, 0, SOIL_LOAD_RGB);
 					glBindTexture(GL_TEXTURE_2D, tex[4 + texs]);
 					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, texImage);
@@ -352,8 +356,8 @@ void InitOpenGL(void)
 		}
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 
 

@@ -46,14 +46,14 @@ GLEW has been tested on a variety of operating systems, including Windows, Linux
 #define M_PI 3.1415926535
 #endif
 
+// COLLADA filename
+extern const char * ColladaFname;
+
 // To switch between open and closed loop
 extern int closed;
 
 // To stop all motion
 extern int stopped;
-
-// Set the distance between the fly and the initial object of interest
-extern float dist2stripe;
 
 // Variables that hold the current ball offset
 extern float BallOffsetRotNow;
