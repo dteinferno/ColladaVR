@@ -286,7 +286,6 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 		if (netTime > 4.5 * 60)
 		{
 			SysShutdown();
-			break;
 		}
 		
 		////////////////////////////////////////////////////////////////////////////////////
@@ -330,7 +329,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 		if (GetAsyncKeyState(VK_ESCAPE) || (netTime > 30 * 60))
 			SysShutdown();
 	}
-	GLShutdown();	
+	GLShutdown();
 	fclose(str);
 	return msg.lParam;
 }

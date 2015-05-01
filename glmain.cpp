@@ -114,8 +114,8 @@ const char* fragment_shader =
 "  vec4 unmodColor = texture(tex, distort);"
 " if (color == 1)"
 " {"
+"  unmodColor.r = 0.0;"
 "  unmodColor.g = 0.0;"
-"  unmodColor.b = 0.0;"
 " }"
 " if (color == 2)"
 " {"
@@ -124,7 +124,7 @@ const char* fragment_shader =
 " }"
 " if (color == 3)"
 " {"
-"  unmodColor.r = 0.0;"
+"  unmodColor.b = 0.0;"
 "  unmodColor.g = 0.0;"
 " }"
 "  frag_colour = projcorrect*brightcorrect*vec4(unmodColor.r*1.0, unmodColor.g*1.0, unmodColor.b*1.0, 1.0 );"
@@ -625,17 +625,17 @@ bool loadOBJ(SourceData Vertex, SourceData Normal, SourceData Texcoord, int numI
 // Clear the buffers on shutdown
 void GLShutdown(void)
 {
-	glDeleteTextures(1, tex);
+	glDeleteTextures(num_images+4, tex);
 	glDeleteProgram(shader_program);
 	glDeleteShader(fs);
 	glDeleteShader(vs);
 
 	// Deallocate mesh data
-	ColladaInterface::freeGeometries(&geom_vec);
+	//ColladaInterface::freeGeometries(&geom_vec);
 
 	// Deallocate OpenGL objects
-	glDeleteBuffers(num_objects, vbos);
-	glDeleteBuffers(3 * num_objects + 1, vaos);
+	glDeleteBuffers(3 * num_objects + 1, vbos);
+	glDeleteBuffers(num_objects + 1, vaos);
 	delete(vbos);
 	delete(vaos);
 
