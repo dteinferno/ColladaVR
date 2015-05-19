@@ -181,15 +181,20 @@ void ColladaInterface::readImages(std::vector<ColIm>* v, const char* filename) {
 	TiXmlElement* images =
 		doc.RootElement()->FirstChildElement("library_images")->FirstChildElement("image");
 
-	// Extract the texture label
-	data.imagename = images->Attribute("name");
+	while (images != NULL)
+	{
 
-	// Read the texture filename
-	imagename = images->FirstChildElement("init_from");
-	text = (char*)(imagename->GetText());
-	data.imageloc = text;
+		// Extract the texture label
+		data.imagename = images->Attribute("name");
 
-	v->push_back(data);
+		// Read the texture filename
+		imagename = images->FirstChildElement("init_from");
+		text = (char*)(imagename->GetText());
+		data.imageloc = text;
+
+		v->push_back(data);
+		images = images->NextSiblingElement("image");
+	}
 
 }
 
@@ -255,7 +260,6 @@ void ColladaInterface::freeGeometries(std::vector<ColGeom>* v) {
 	SourceMap::iterator map_it;
 
 	for (geom_it = v->begin(); geom_it < v->end(); geom_it++) {
-
 		// Deallocate index data
 		free(geom_it->indices);
 

@@ -13,7 +13,7 @@
 #include "colladainterface.h"
 
 // Point to the COLLADA file
-const char * ColladaFname = "D:\\Environments\\TwoCylV1.dae";
+const char * ColladaFname = "D:\\Environments\\TwoCylV1_DarkCylTexBack.dae";
 
 // Define constants related to the projector angles
 float dist2stripe = 20;
@@ -96,7 +96,7 @@ const char* fragment_shader =
 "  {"
 "   distorts = Texcoord.s;"
 "   distortt = Texcoord.t;"
-"   brightcorrect = 1;"
+"   brightcorrect = 1.0;"
 "  }"
 
 " float projcorrect = projnorm/proj1power;"
@@ -119,13 +119,13 @@ const char* fragment_shader =
 " }"
 " if (color == 2)"
 " {"
-"  unmodColor.r = 0.0;"
+"  unmodColor.g = 0.0;"
 "  unmodColor.b = 0.0;"
 " }"
 " if (color == 3)"
 " {"
+"  unmodColor.r = 0.0;"
 "  unmodColor.b = 0.0;"
-"  unmodColor.g = 0.0;"
 " }"
 "  frag_colour = projcorrect*brightcorrect*vec4(unmodColor.r*1.0, unmodColor.g*1.0, unmodColor.b*1.0, 1.0 );"
 "}";
@@ -162,7 +162,6 @@ void InitOpenGL(void)
 	glDepthFunc(GL_LEQUAL);
 	glEnable(GL_CULL_FACE);
 	glShadeModel(GL_SMOOTH);
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 
 
 	// Create the shaders
@@ -203,9 +202,9 @@ void InitOpenGL(void)
 
 	// Check if the object loaded properly
 	bool resdat;
-
+	
 	// Configure VBOs to hold positions, texture coordinates, and normals for each geometry
-	for (int i = 0; i<num_objects; i++) {
+	for (int i = 0; i < num_objects; i++) {
 
 		// Vectors to hold the info
 		std::vector<glm::vec3> vertices_obj;
@@ -216,7 +215,6 @@ void InitOpenGL(void)
 
 		// Convert the maps from the Collada file to vectors for OpenGL
 		resdat = loadOBJ(geom_vec[i].map["VERTEX"], geom_vec[i].map["NORMAL"], geom_vec[i].map["TEXCOORD"], geom_vec[i].index_count, geom_vec[i].indices, vertices_obj, uvs_obj, normals_obj);
-		
 
 		// Load the data to the shaders 
 		glBindBuffer(GL_ARRAY_BUFFER, vbos[3*i]);
@@ -262,14 +260,14 @@ void InitOpenGL(void)
 		windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 1.0f, 0.0f,
 
 		// Second set of points for a blinking dot that will trigger the photodiode.
-		-0.95*windowSpan, (float)dist2stripe, windowSpan * (1 / aspect - 0.05), 1.0f, 1.0f, 1.0f,
-		-0.95*windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 1.0f, 0.0f,
-		-windowSpan, (float)dist2stripe, windowSpan * (1 / aspect - 0.05), 1.0f, 0.0f, 1.0f,
-		-windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 0.0f, 0.0f,
+		windowSpan, (float)dist2stripe, windowSpan * (1 / aspect - 0.15), 1.0f, 1.0f, 1.0f,
+		windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 1.0f, 0.0f,
+		0.85*windowSpan, (float)dist2stripe, windowSpan * (1 / aspect - 0.15), 1.0f, 0.0f, 1.0f,
+		0.85*windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 0.0f, 0.0f,
 	};
 
 	// Bind the vertex data to the buffer array
-	glBindBuffer(GL_ARRAY_BUFFER, vbos[2 * num_objects +1]);
+	glBindBuffer(GL_ARRAY_BUFFER, vbos[3 * num_objects]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 	// Define the elements for the stripe and the projected screen.
@@ -360,9 +358,6 @@ void InitOpenGL(void)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 
-
-
-
 	// Pull out the cylindrical distortion switch uniform from the shader
 	cylLocation = glGetUniformLocation(shader_program, "cyl");
 
@@ -390,10 +385,10 @@ void RenderFrame(int direction)
 		//Clear the image and bind the appropriate color texture
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);  // Set the background color to black
 		glClearDepth(1.0f);
-		glUniform1f(setColor, (int)n+1);
+		glUniform1i(setColor, (int)n+1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear the buffers
 		glUniform1f(cylLocation, (float) 0.0f); // Initially, we want an undistorted projection
-		glUniform1f(ProjNumber, (int)100);  // No brightness correction the first time
+		glUniform1i(ProjNumber, (int)100);  // No brightness correction the first time
 
 		// Take a picture for each of the three camera angles
 		for (int windowNum = 0; windowNum < 3; windowNum++) {
@@ -466,20 +461,20 @@ void RenderFrame(int direction)
 	// Map the textures onto a rectangle/window that spans all three projectors and apply the appropriate shader distortion corrections
 	{
 		// Allow the different colors/textures to be blended
-		//glEnable(GL_BLEND);
-		//glBlendFunc(GL_ONE, GL_ONE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_ONE, GL_ONE);
 
 		// Clear the screen and apply
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glBindVertexArray(vaos[num_objects]);
 
-		glUniform1f(setColor, (int)0);
+		glUniform1i(setColor, (int)0);
 		glUniform1f(cylLocation, (float) 1.0f); // Allow the projection to be distorted for the cylindrical screen using the shader
 		glViewport(0, 0, SCRWIDTH, SCRHEIGHT); // Open up the viewport to the full screen
 		ViewMatrix = glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(0, dist2stripe, 0), glm::vec3(0, 0, 1)); //Look at the center of the rectangle
 		glUniformMatrix4fv(ViewID, 1, false, glm::value_ptr(ViewMatrix));
 		glUniformMatrix4fv(ModelID, 1, false, glm::value_ptr(identity));
-		glUniform1f(ProjNumber, (int)1);  // Correct for the brightness difference between projectors
+		glUniform1i(ProjNumber, (int)1);  // Correct for the brightness difference between projectors
 
 		// Draw the rectangle
 		for (int n = 0; n < 3; n++) {
@@ -493,10 +488,10 @@ void RenderFrame(int direction)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Draw a box to trigger the photodiode
-		glUniform1f(cylLocation, (float) 0.0f); // Initially, we want an undistorted projection
-		glUniform1f(ProjNumber, (int)100);  // No brightness correction the first time
-		glBindTexture(GL_TEXTURE_2D, tex[0]);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(GLfloat)));
+	glUniform1f(cylLocation, (float) 0.0f); // Initially, we want an undistorted projection
+	glUniform1i(ProjNumber, (int)100);  // No brightness correction the first time
+	glBindTexture(GL_TEXTURE_2D, tex[0]);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(GLfloat)));
 
 }
 
@@ -534,8 +529,8 @@ bool loadOBJ(SourceData Vertex, SourceData Normal, SourceData Texcoord, int numI
 		for (int texStep = 0; texStep < Texcoord.size / 2 / sizeof(float); texStep++)
 		{
 			glm::vec2 uv;
-			uv.x = textureData[2 * texStep];
-			uv.y = textureData[2 * texStep + 1];
+			uv.x = 1-textureData[2 * texStep];
+			uv.y = 1-textureData[2 * texStep + 1];
 			temp_uvs.push_back(uv);
 		}
 		incInd = 3;
@@ -598,6 +593,7 @@ bool loadOBJ(SourceData Vertex, SourceData Normal, SourceData Texcoord, int numI
 		normalIndices.push_back(normalIndex[2]);
 	}
 
+
 	// For each vertex of each triangle
 	for (unsigned int i = 0; i<vertexIndices.size(); i++)
 	{
@@ -631,7 +627,7 @@ void GLShutdown(void)
 	glDeleteShader(vs);
 
 	// Deallocate mesh data
-	//ColladaInterface::freeGeometries(&geom_vec);
+	ColladaInterface::freeGeometries(&geom_vec);
 
 	// Deallocate OpenGL objects
 	glDeleteBuffers(3 * num_objects + 1, vbos);

@@ -267,12 +267,12 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 		}
 
 		/////////////////////// EXPERIMENT SPECIFICS LIVE HERE /////////////////////////////
-		if (netTime < 15)
+		if (netTime < 3)
 		{
 			closed = 1;		
 			olsdir = 0;
 		}
-		if (netTime > 15 && netTime < 4.25 * 60)
+		if (netTime > 3 && netTime < 4.25 * 60)
 		{
 			closed = 1;
 			olsdir = 1;

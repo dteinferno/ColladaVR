@@ -137,6 +137,7 @@ void TreadMillDat()
 
 	//Camera Data Bins
 	int dx[2], dy[2];
+	float dxmod[2], dymod[2];
 
 	// FTDI variables
 	unsigned char rBuffer[480];
@@ -161,11 +162,18 @@ void TreadMillDat()
 			dy[1] += ((int)rBuffer[i + 5]) - 128;
 		}
 
-		float deltaFor = (float)((float)dy[0] / Cam1PosCalibfact + (float)dy[1] / Cam2PosCalibfact)*sqrt(2) / 2;
-		float deltaSide = (float)((float)dy[0] / Cam1PosCalibfact - (float)dy[1] / Cam2PosCalibfact)*sqrt(2) / 2;
+		//Correct for fly's angle on the ball;
+		float flyAng = 30.0f * M_PI / 180;
+		dxmod[0] = dx[0] * cos(flyAng) + dy[0] * sin(flyAng);
+		dymod[0] = dy[0] * cos(flyAng) + dx[0] * sin(flyAng);
+		dxmod[1] = dx[1] * cos(flyAng) + dy[1] * sin(-flyAng);
+		dymod[1] = dy[1] * cos(flyAng) + dx[1] * sin(-flyAng);
+
+		float deltaFor = (float)(dymod[0] / Cam1PosCalibfact + dymod[1] / Cam2PosCalibfact)*sqrt(2) / 2;
+		float deltaSide = (float)(dymod[0] / Cam1PosCalibfact - dymod[1] / Cam2PosCalibfact)*sqrt(2) / 2;
 		//Update the offset given the ball movement
 		io_mutex.lock();
-		BallOffsetRot += (float)((float)dx[0] * Cam1RotCalibfact + (float)dx[1] * Cam2RotCalibfact) / 2;
+		BallOffsetRot += (float)(dxmod[0] * Cam1RotCalibfact + dxmod[1] * Cam2RotCalibfact) / 2;
 		BallOffsetFor += deltaFor*cosf(BallOffsetRot * M_PI / 180) + deltaSide*sinf(BallOffsetRot * M_PI / 180);
 		BallOffsetSide += deltaFor*sinf(BallOffsetRot * M_PI / 180) - deltaSide*cosf(BallOffsetRot * M_PI / 180);
 
@@ -179,15 +187,15 @@ void TreadMillDat()
 				& pow(BallOffsetFor - trans_vec[obj].trans_data[1], 2) + pow(BallOffsetSide - trans_vec[obj].trans_data[0], 2) < pow(outerscale*trans_vec[obj].scale_data[0], 2))
 			{
 				BoundaryStopCorrection = outerscale*trans_vec[obj].scale_data[0] / sqrt(pow(BallOffsetFor - trans_vec[obj].trans_data[1], 2) + pow(BallOffsetSide - trans_vec[obj].trans_data[0], 2));
-				BallOffsetFor = BoundaryStopCorrection * BallOffsetFor;
-				BallOffsetSide = BoundaryStopCorrection * BallOffsetSide;
+				BallOffsetFor = BoundaryStopCorrection * (BallOffsetFor - trans_vec[obj].trans_data[1]) + trans_vec[obj].trans_data[1];
+				BallOffsetSide = BoundaryStopCorrection * (BallOffsetSide - trans_vec[obj].trans_data[0]) + trans_vec[obj].trans_data[0];
 			}
 			if (pow(BallOffsetFor - trans_vec[obj].trans_data[1], 2) + pow(BallOffsetSide - trans_vec[obj].trans_data[0], 2) < pow(trans_vec[obj].scale_data[0], 2)
 				& pow(BallOffsetFor - trans_vec[obj].trans_data[1], 2) + pow(BallOffsetSide - trans_vec[obj].trans_data[0], 2) > pow(innerscale*trans_vec[obj].scale_data[0], 2))
 			{
 				BoundaryStopCorrection = innerscale*trans_vec[obj].scale_data[0] / sqrt(pow(BallOffsetFor - trans_vec[obj].trans_data[1], 2) + pow(BallOffsetSide - trans_vec[obj].trans_data[06], 2));
-				BallOffsetFor = BoundaryStopCorrection * BallOffsetFor;
-				BallOffsetSide = BoundaryStopCorrection * BallOffsetSide;
+				BallOffsetFor = BoundaryStopCorrection * (BallOffsetFor - trans_vec[obj].trans_data[1]) + trans_vec[obj].trans_data[1];
+				BallOffsetSide = BoundaryStopCorrection * (BallOffsetSide - trans_vec[obj].trans_data[0]) + trans_vec[obj].trans_data[0];
 			}
 		}
 
