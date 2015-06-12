@@ -13,7 +13,7 @@
 #include "colladainterface.h"
 
 // Point to the COLLADA file
-const char * ColladaFname = "D:\\Environments\\TwoCylV1_DarkCylTexBack.dae";
+const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCylFlatBack.dae";
 
 // Define constants related to the projector angles
 float dist2stripe = 20;
@@ -203,6 +203,9 @@ void InitOpenGL(void)
 	// Check if the object loaded properly
 	bool resdat;
 	
+	FILE* wtf;
+	fopen_s(&wtf, "wtf.csv","w");
+
 	// Configure VBOs to hold positions, texture coordinates, and normals for each geometry
 	for (int i = 0; i < num_objects; i++) {
 
@@ -213,8 +216,23 @@ void InitOpenGL(void)
 
 		glBindVertexArray(vaos[i]);
 
+		fprintf(wtf, "%s\n", geom_vec[i].name.c_str());
 		// Convert the maps from the Collada file to vectors for OpenGL
 		resdat = loadOBJ(geom_vec[i].map["VERTEX"], geom_vec[i].map["NORMAL"], geom_vec[i].map["TEXCOORD"], geom_vec[i].index_count, geom_vec[i].indices, vertices_obj, uvs_obj, normals_obj);
+		for (int vert = 0; vert < vertices_obj.size(); vert++)
+		{
+			fprintf(wtf, "%f,", vertices_obj[vert].x);
+			fprintf(wtf, "%f,", vertices_obj[vert].y);
+			fprintf(wtf, "%f,", vertices_obj[vert].z);
+		}
+		fprintf(wtf, "\n");
+		for (int theuvs = 0; theuvs < uvs_obj.size(); theuvs++)
+		{
+			fprintf(wtf, "%f,", uvs_obj[theuvs].x);
+			fprintf(wtf, "%f,", uvs_obj[theuvs].y);
+		}
+		fprintf(wtf, "\n");
+
 
 		// Load the data to the shaders 
 		glBindBuffer(GL_ARRAY_BUFFER, vbos[3*i]);
@@ -238,6 +256,7 @@ void InitOpenGL(void)
 		glEnableVertexAttribArray(texAttrib);
 		glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 	}
+	fclose(wtf);
 
 	// Get out the Collada transformations
 	ColladaInterface::readTransformations(&trans_vec, ColladaFname);
@@ -529,8 +548,8 @@ bool loadOBJ(SourceData Vertex, SourceData Normal, SourceData Texcoord, int numI
 		for (int texStep = 0; texStep < Texcoord.size / 2 / sizeof(float); texStep++)
 		{
 			glm::vec2 uv;
-			uv.x = 1-textureData[2 * texStep];
-			uv.y = 1-textureData[2 * texStep + 1];
+			uv.x = textureData[2 * texStep];
+			uv.y = textureData[2 * texStep + 1];
 			temp_uvs.push_back(uv);
 		}
 		incInd = 3;
@@ -627,7 +646,7 @@ void GLShutdown(void)
 	glDeleteShader(vs);
 
 	// Deallocate mesh data
-	ColladaInterface::freeGeometries(&geom_vec);
+	//ColladaInterface::freeGeometries(&geom_vec);
 
 	// Deallocate OpenGL objects
 	glDeleteBuffers(3 * num_objects + 1, vbos);
