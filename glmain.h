@@ -69,6 +69,8 @@ void InitOpenGL(void);
 // Draw the scene
 void RenderFrame(int direction);
 
+void PDBox(void);
+
 // Clear the buffers, delete the shaders, etc...
 void GLShutdown(void);
 

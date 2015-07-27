@@ -130,10 +130,10 @@ void TreadMillStart()
 void TreadMillDat()
 {
 	//Set the calibration factor
-	float Cam1RotCalibfact = 1.67;
-	float Cam2RotCalibfact = 1.37;
-	float Cam1PosCalibfact = 114;
-	float Cam2PosCalibfact = 139;
+	float Cam1RotCalibfact = 0.88;//1.67
+	float Cam2RotCalibfact = 0.94;//1.37
+	float Cam1PosCalibfact = 162;//114
+	float Cam2PosCalibfact = 152;//139
 
 	//Camera Data Bins
 	int dx[2], dy[2];

@@ -13,7 +13,10 @@
 #include "colladainterface.h"
 
 // Point to the COLLADA file
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCylFlatBack.dae";
 const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCylFlatBack.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCyl3ObjBack.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCyl3ObjBack.dae";
 
 // Define constants related to the projector angles
 float dist2stripe = 20;
@@ -25,6 +28,7 @@ float BallOffsetForNow = 0.0f;
 float BallOffsetSideNow = 0.0f;
 
 // Variable to control the direction of the open loop stripe (+/-1) AND whether or not to display anything at all (0)
+
 int olsdir;
 
 // Vertex shader which passes through the texture and position coordinates
@@ -506,12 +510,15 @@ void RenderFrame(int direction)
 	if (direction == 0)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+}
+
+void PDBox(void)
+{
 	// Draw a box to trigger the photodiode
 	glUniform1f(cylLocation, (float) 0.0f); // Initially, we want an undistorted projection
 	glUniform1i(ProjNumber, (int)100);  // No brightness correction the first time
 	glBindTexture(GL_TEXTURE_2D, tex[0]);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(GLfloat)));
-
 }
 
 // Convert map data from a Collada file to vector data

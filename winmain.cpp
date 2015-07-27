@@ -224,7 +224,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 	float dy0Now = 0.0f;
 	float dy1Now = 0.0f;
 	InitOffset();
-	Sleep(1000);
+	Sleep(2000);
 
 	int cw = 1; // Move the open loop stripe in a clockwise direction
 	int ccw = -1; // Move the open loop stripe in a counterclockwise direction
@@ -249,7 +249,6 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 			DispatchMessage(&msg);
 		}
 
-
 		// Timestamp closed loop output in order to recreate later
 		QueryPerformanceCounter(&li);
 		float netTime = (li.QuadPart - CounterStart) / PCFreq;
@@ -260,7 +259,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 			srand(time(0));
 			io_mutex.lock();
 			BallOffsetRot = fmod(rand(), 180) - 90;
-			BallOffsetFor = -10.0f;
+			BallOffsetFor = -5.0f;
 			BallOffsetSide = 0.0f;
 			io_mutex.unlock();
 			randomreset = 0;
@@ -272,18 +271,18 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 			closed = 1;		
 			olsdir = 0;
 		}
-		if (netTime > 15 && netTime < 4.25 * 60)
+		if (netTime > 15 && netTime < 2.25 * 60)
 		{
 			closed = 1;
 			olsdir = 1;
 		}
-		if (netTime > 4.25 * 60 && netTime < 4.5 * 60)
+		if (netTime > 2.25 * 60 && netTime < 2.5 * 60)
 		{
 			closed = 1;
 			olsdir = 0;
 		}
 
-		if (netTime > 4.5 * 60)
+		if (netTime > 2.5 * 60)
 		{
 			SysShutdown();
 		}
@@ -293,6 +292,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 		//Switch contexts and draw
 		wglMakeCurrent(hdc1, hglrc);
 		RenderFrame(olsdir);
+		PDBox();
 
 		//Swapbuffers
 		SwapBuffers(hdc1);
