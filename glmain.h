@@ -49,12 +49,6 @@ GLEW has been tested on a variety of operating systems, including Windows, Linux
 // COLLADA filename
 extern const char * ColladaFname;
 
-// To switch between open and closed loop
-extern int closed;
-
-// To stop all motion
-extern int stopped;
-
 // Variables that hold the current ball offset
 extern float BallOffsetRotNow;
 extern float BallOffsetForNow;
@@ -67,7 +61,7 @@ extern std::vector<ColTrans> trans_vec;
 void InitOpenGL(void);
 
 // Draw the scene
-void RenderFrame(int direction);
+void RenderFrame(int closed, int trans, int direction, float lookDownAng, float gain);
 
 void PDBox(void);
 

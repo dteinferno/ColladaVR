@@ -27,11 +27,30 @@ and segments of Jim Strother's Win API code
 #include "wglext.h"
 #include "DAQ.h"
 
-// Open loop or closed loop
-int closed;
+// Point to the COLLADA file
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCylFlatBack.dae";
+const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCylFlatBack.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCyl3ObjBack.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCyl3ObjBack.dae";
+//const char * ColladaFname = "D:\\Environments\\FlowV1.dae";
 
-// Update visual stim or stop the update
-int stopped = 0;
+// Specify the fly body and head angles for software corrections
+float flyAng = 30.0f * M_PI / 180;
+float lookDownAng = 0;
+
+// Specify the trial structure
+struct trial {
+	float time; // time of the trial
+	int fback; // open (0) or closed (1) loop
+	int polar; // translation (1) or rotation (0) for open loop
+	int direction; // (1 or -1, 0 to not render anything)
+	float olGain; // open loop gain (period or 360/gain = vel)
+};
+//trial experiment[6] = { { 10, 1, 0, 0, 0 }, { 10, 0, 0, 1, 5 }, { 10, 0, 0, -1, 5 }, { 10, 0, 1, 1, 360 / 5 }, { 10, 0, 1, -1, 360/5 }, { 10, 1, 0, 0, 0 } };
+trial experiment[6] = { { 10, 1, 0, 0, 0 }, { 120, 1, 0, 1, 0 }, { 10, 1, 0, 0, 0 } };
+
+// Tell the LED when to trigger
+int LEDRun = 0;
 
 // Filename for the synchronization file
 char* syncfname;
@@ -226,8 +245,6 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 	InitOffset();
 	Sleep(2000);
 
-	int cw = 1; // Move the open loop stripe in a clockwise direction
-	int ccw = -1; // Move the open loop stripe in a counterclockwise direction
 	int randomreset = 1;
 
 	PFNWGLSWAPINTERVALEXTPROC       wglSwapIntervalEXT = NULL;
@@ -236,6 +253,13 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 		(PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
 	wglGetSwapIntervalEXT =
 		(PFNWGLGETSWAPINTERVALEXTPROC)wglGetProcAddress("wglGetSwapIntervalEXT");
+
+	// Get information about the trials
+	float exptTime = 0;
+	for (int trialNum = 0; trialNum < sizeof(experiment)/sizeof(experiment[0]); trialNum++)
+		exptTime = exptTime + experiment[trialNum].time;
+	float timeOffset = 0;
+	int trialNow = 0;
 
 	// The main loop
 	while (!quit)
@@ -266,23 +290,13 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 		}
 
 		/////////////////////// EXPERIMENT SPECIFICS LIVE HERE /////////////////////////////
-		if (netTime < 15)
+		if (netTime > experiment[trialNow].time + timeOffset)
 		{
-			closed = 1;		
-			olsdir = 0;
-		}
-		if (netTime > 15 && netTime < 2.25 * 60)
-		{
-			closed = 1;
-			olsdir = 1;
-		}
-		if (netTime > 2.25 * 60 && netTime < 2.5 * 60)
-		{
-			closed = 1;
-			olsdir = 0;
+			timeOffset = timeOffset + experiment[trialNow].time;
+			trialNow++;
 		}
 
-		if (netTime > 2.5 * 60)
+		if (netTime > exptTime)
 		{
 			SysShutdown();
 		}
@@ -291,7 +305,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 
 		//Switch contexts and draw
 		wglMakeCurrent(hdc1, hglrc);
-		RenderFrame(olsdir);
+		RenderFrame(experiment[trialNow].fback, experiment[trialNow].polar, experiment[trialNow].direction, lookDownAng, experiment[trialNow].olGain);
 		PDBox();
 
 		//Swapbuffers
@@ -303,7 +317,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 
 		// Pull out the relevant values
 		io_mutex.lock();
-		if (closed)
+		if (experiment[trialNow].fback)
 			BallOffsetRotNow = BallOffsetRot;
 		BallOffsetForNow = BallOffsetFor;
 		BallOffsetSideNow = BallOffsetSide;
@@ -323,11 +337,15 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 		fprintf(str, "dx1:\t%f\t", dx1Now);
 		fprintf(str, "dy0:\t%f\t", dy0Now);
 		fprintf(str, "dy1:\t%f\t", dy1Now);
-		fprintf(str, "closed:\t%d\t", closed);
-		fprintf(str, "olsdir:\t%d\n", olsdir);
+		fprintf(str, "closed:\t%d\t", experiment[trialNow].fback);
+		fprintf(str, "olsdir:\t%d\t", experiment[trialNow].direction);
+		fprintf(str, "trans:\t%d\t", experiment[trialNow].polar);
+		fprintf(str, "gain:\t%f\n", experiment[trialNow].olGain);
 
-		if (GetAsyncKeyState(VK_ESCAPE) || (netTime > 30 * 60))
+		if (GetAsyncKeyState(VK_ESCAPE))
 			SysShutdown();
+		if (GetAsyncKeyState(VK_SCROLL))
+			LEDRun = 1;
 	}
 	GLShutdown();
 	fclose(str);

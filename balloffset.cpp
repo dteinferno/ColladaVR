@@ -57,11 +57,10 @@ void InitOffset()
 
 // FOR OPEN LOOP
 // Set the loop duration and calculate the offset due to time passing
-void TimeOffset(float &tOffset, int dir, __int64 start) {
+void TimeOffset(float &tOffset, int dir, __int64 start, float period) {
 	// get delta time for this iteration:
 	QueryPerformanceCounter(&li);
 	float fDeltaTime = (li.QuadPart - start) / PCFreq;
-	float period = 15;
 	float gain = 360 / period;
 	tOffset = dir*fDeltaTime*gain;
 }
@@ -163,7 +162,6 @@ void TreadMillDat()
 		}
 
 		//Correct for fly's angle on the ball;
-		float flyAng = 30.0f * M_PI / 180;
 		dxmod[0] = dx[0] * cos(flyAng) + dy[0] * sin(flyAng);
 		dymod[0] = dy[0] * cos(flyAng) + dx[0] * sin(flyAng);
 		dxmod[1] = dx[1] * cos(flyAng) + dy[1] * sin(-flyAng);

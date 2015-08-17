@@ -26,12 +26,13 @@ extern float dx0;
 extern float dx1;
 extern float dy0;
 extern float dy1;
+extern float flyAng;
 
 // Start the counter and set up the treadmill
 void InitOffset(void);
 
 // Calculate offsets for open loop
-void TimeOffset(float &tOffset, int dir, time_t start);
+void TimeOffset(float &tOffset, int dir, time_t start, float period);
 
 // Start the treadmill
 void TreadMillStart(void);

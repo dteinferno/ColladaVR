@@ -10,17 +10,12 @@
 #include "winmain.h"
 #include "system.h"
 #include "balloffset.h"
-#include "colladainterface.h"
-
-// Point to the COLLADA file
-//const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCylFlatBack.dae";
-const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCylFlatBack.dae";
-//const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCyl3ObjBack.dae";
-//const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCyl3ObjBack.dae";
+#include "colladainterface.h"\
 
 // Define constants related to the projector angles
 float dist2stripe = 20;
 float fovAng = 80 * M_PI / 180;
+float numDivAngs = 10*3;
 
 // Define offset values (Rotational, Forward, and Lateral)
 float BallOffsetRotNow = 0.0f;
@@ -28,8 +23,10 @@ float BallOffsetForNow = 0.0f;
 float BallOffsetSideNow = 0.0f;
 
 // Variable to control the direction of the open loop stripe (+/-1) AND whether or not to display anything at all (0)
-
 int olsdir;
+
+// Variable to set the rate for open loop
+float gain;
 
 // Vertex shader which passes through the texture and position coordinates
 const char* vertex_shader =
@@ -207,8 +204,6 @@ void InitOpenGL(void)
 	// Check if the object loaded properly
 	bool resdat;
 	
-	FILE* wtf;
-	fopen_s(&wtf, "wtf.csv","w");
 
 	// Configure VBOs to hold positions, texture coordinates, and normals for each geometry
 	for (int i = 0; i < num_objects; i++) {
@@ -220,23 +215,8 @@ void InitOpenGL(void)
 
 		glBindVertexArray(vaos[i]);
 
-		fprintf(wtf, "%s\n", geom_vec[i].name.c_str());
 		// Convert the maps from the Collada file to vectors for OpenGL
 		resdat = loadOBJ(geom_vec[i].map["VERTEX"], geom_vec[i].map["NORMAL"], geom_vec[i].map["TEXCOORD"], geom_vec[i].index_count, geom_vec[i].indices, vertices_obj, uvs_obj, normals_obj);
-		for (int vert = 0; vert < vertices_obj.size(); vert++)
-		{
-			fprintf(wtf, "%f,", vertices_obj[vert].x);
-			fprintf(wtf, "%f,", vertices_obj[vert].y);
-			fprintf(wtf, "%f,", vertices_obj[vert].z);
-		}
-		fprintf(wtf, "\n");
-		for (int theuvs = 0; theuvs < uvs_obj.size(); theuvs++)
-		{
-			fprintf(wtf, "%f,", uvs_obj[theuvs].x);
-			fprintf(wtf, "%f,", uvs_obj[theuvs].y);
-		}
-		fprintf(wtf, "\n");
-
 
 		// Load the data to the shaders 
 		glBindBuffer(GL_ARRAY_BUFFER, vbos[3*i]);
@@ -260,7 +240,6 @@ void InitOpenGL(void)
 		glEnableVertexAttribArray(texAttrib);
 		glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 	}
-	fclose(wtf);
 
 	// Get out the Collada transformations
 	ColladaInterface::readTransformations(&trans_vec, ColladaFname);
@@ -398,7 +377,7 @@ void InitOpenGL(void)
 
 }
 
-void RenderFrame(int direction)
+void RenderFrame(int closed, int trans, int direction, float lookDownAng, float gain)
 {
 	glm::mat4 identity;
 
@@ -413,13 +392,16 @@ void RenderFrame(int direction)
 		glUniform1f(cylLocation, (float) 0.0f); // Initially, we want an undistorted projection
 		glUniform1i(ProjNumber, (int)100);  // No brightness correction the first time
 
-		// Take a picture for each of the three camera angles
-		for (int windowNum = 0; windowNum < 3; windowNum++) {
+		// Take a picture for each of the camera angles
+		for (int windowNum = 0; windowNum < numDivAngs; windowNum++) {
 
 			// Define the scene to be captured
-			glViewport(SCRWIDTH*windowNum / 3, 0, SCRWIDTH / 3, SCRHEIGHT); // Restrict the viewport to the region of interest
-			ProjectionMatrix = glm::perspective(float(360 / M_PI * atanf(tanf(fovAng / 2) * float(SCRHEIGHT) / float(SCRWIDTH))), float(SCRWIDTH) / float(SCRHEIGHT), 0.1f, 1000.0f); //Set the perspective for the projector
-			ViewMatrix = glm::lookAt(glm::vec3(0, 0, 0), glm::vec3((windowNum - 1) * tanf(fovAng), 1, 0), glm::vec3(0, 0, 1)); //Look at the appropriate direction for the projector
+			glViewport(SCRWIDTH*windowNum / numDivAngs, 0, SCRWIDTH / numDivAngs, SCRHEIGHT); // Restrict the viewport to the region of interest
+			float fovAngNow = fovAng * 3 / numDivAngs;
+			float angNow = fovAngNow * (windowNum - (numDivAngs - 1)/2);
+			ProjectionMatrix = glm::perspective(float(360 / M_PI * atanf(tanf(fovAngNow / 2) * float(SCRHEIGHT) / float(SCRWIDTH * 3 / numDivAngs))), float(SCRWIDTH * 3 / numDivAngs) / float(SCRHEIGHT), 0.1f, 1000.0f); //Set the perspective for the projector
+			ViewMatrix = glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(sinf(angNow), cosf(angNow), 0), glm::vec3(0, 0, 1)) * glm::rotate(identity, lookDownAng, glm::vec3(1.0f, 0.0f, 0.0f)); //Look at the appropriate direction for the projector
+
 			glUniformMatrix4fv(ProjectionID, 1, false, glm::value_ptr(ProjectionMatrix));
 			glUniformMatrix4fv(ViewID, 1, false, glm::value_ptr(ViewMatrix));
 
@@ -433,15 +415,16 @@ void RenderFrame(int direction)
 			}
 			else  // Advance the environment according to open loop parameters
 			{
-				TimeOffset(BallOffsetRotNow, direction, CounterStart);
-				BallOffsetForNow = 0.0f;
-				BallOffsetSideNow = 0.0f;
-			}
-
-			if (stopped) // Keep the scene fixed
-			{
-				BallOffsetRotNow = 0.0f;
-				BallOffsetForNow = 0.0f;
+				if (trans)
+				{
+					TimeOffset(BallOffsetForNow, direction, CounterStart, gain);
+					BallOffsetRotNow = 0.0f;
+				}
+				else
+				{
+					TimeOffset(BallOffsetRotNow, direction, CounterStart, gain);
+					BallOffsetForNow = 0.0f;
+				}
 				BallOffsetSideNow = 0.0f;
 			}
 
@@ -494,7 +477,9 @@ void RenderFrame(int direction)
 		glUniform1i(setColor, (int)0);
 		glUniform1f(cylLocation, (float) 1.0f); // Allow the projection to be distorted for the cylindrical screen using the shader
 		glViewport(0, 0, SCRWIDTH, SCRHEIGHT); // Open up the viewport to the full screen
+		ProjectionMatrix = glm::perspective(float(360 / M_PI * atanf(tanf(fovAng / 2) * float(SCRHEIGHT) / float(SCRWIDTH))), float(SCRWIDTH) / float(SCRHEIGHT), 0.1f, 1000.0f); //Set the perspective for the projector
 		ViewMatrix = glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(0, dist2stripe, 0), glm::vec3(0, 0, 1)); //Look at the center of the rectangle
+		glUniformMatrix4fv(ProjectionID, 1, false, glm::value_ptr(ProjectionMatrix));
 		glUniformMatrix4fv(ViewID, 1, false, glm::value_ptr(ViewMatrix));
 		glUniformMatrix4fv(ModelID, 1, false, glm::value_ptr(identity));
 		glUniform1i(ProjNumber, (int)1);  // Correct for the brightness difference between projectors

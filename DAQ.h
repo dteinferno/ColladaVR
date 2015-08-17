@@ -19,6 +19,9 @@
 // Determine when the DAQ is running
 extern int DAQRun;
 
+// Determine when to trigger the LED pulses
+extern int LEDRun;
+
 // The filename for the DAQ data
 extern char* syncfname;
 

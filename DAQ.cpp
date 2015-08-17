@@ -18,10 +18,19 @@ FILE *str;
 
 int DAQDat(void)
 {
+	int opRate = 1000;
+	int numPulses = 10;
+	float freqPulses = 10.0;
+	int widthPulses = 50;
+	int pulseAmp = 4;
+	int lPulseTrain = 1 + round(numPulses * opRate / freqPulses);
+	int numHigh = opRate* widthPulses / 1000;
+
 	int32       error = 0;
 	TaskHandle  outputTaskHandle = 0;
 	TaskHandle  inputTaskHandle = 0;
 	float64     pulseData[3];
+	float64		LEDData[30000];
 	char        errBuff[2048] = { '\0' };
 	int         i = 0;
 	int32   	written;
@@ -32,6 +41,19 @@ int DAQDat(void)
 	pulseData[0] = 0;
 	pulseData[1] = 5;
 	pulseData[2] = 0;
+
+	// LED pulse train
+	// Set up the pulse trains
+	for (int step = 0; step < 30000; step++)
+	{
+		LEDData[step] = 0;
+		for (int pulse = 0; pulse < numPulses; pulse++)
+		{
+			int pulseOffset = pulse * opRate / freqPulses;
+			if ((step - pulseOffset < widthPulses) && (step - pulseOffset > 0))
+				LEDData[step] = pulseAmp;
+		}
+	}
 
 	/*********************************************/
 	// DAQmx Configure Code for the output
@@ -66,12 +88,37 @@ int DAQDat(void)
 	/*********************************************/
 	DAQmxErrChk(DAQmxStartTask(inputTaskHandle));
 
+	Sleep(2001);
+	DAQmxStopTask(outputTaskHandle);
+	DAQmxClearTask(outputTaskHandle);
+
+	/*********************************************/
+	// DAQmx Configure Code for the output
+	/*********************************************/
+	DAQmxErrChk(DAQmxCreateTask("", &outputTaskHandle));
+	DAQmxErrChk(DAQmxCreateAOVoltageChan(outputTaskHandle, "Dev1/ao1", "", -10.0, 10.0, DAQmx_Val_Volts, NULL));
+	DAQmxErrChk(DAQmxCfgSampClkTiming(outputTaskHandle, "", opRate, DAQmx_Val_Rising, DAQmx_Val_FiniteSamps, 30000));
+	DAQmxErrChk(DAQmxRegisterDoneEvent(outputTaskHandle, 0, DoneCallback, NULL));
+
+	/*********************************************/
+	// DAQmx Write Code for the output
+	/*********************************************/
+	DAQmxErrChk(DAQmxWriteAnalogF64(outputTaskHandle, 30000, 0, 10.0, DAQmx_Val_GroupByChannel, LEDData, &written, NULL));
+
 	/*********************************************/
 	// Run the DAQ Acquisition
 	/*********************************************/
+	int once = 1;
 	while (DAQRun)
+	{
+		if ((once == 1) && (LEDRun))
+		{
+			DAQmxErrChk(DAQmxStartTask(outputTaskHandle));
+			once = 0;
+		}
 		;
-
+	}
+	
 Error:
 	if (DAQmxFailed(error))
 		DAQmxGetExtendedErrorInfo(errBuff, 2048);
