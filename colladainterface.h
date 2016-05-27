@@ -30,6 +30,9 @@ struct ColGeom {
 struct ColTrans {
 	std::string name;
 	float* trans_data;
+	float* rotX_data;
+	float* rotY_data;
+	float* rotZ_data;
 	float* scale_data;
 };
 

@@ -27,27 +27,62 @@ and segments of Jim Strother's Win API code
 #include "wglext.h"
 #include "DAQ.h"
 
-// Point to the COLLADA file
-//const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCylFlatBack.dae";
-const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCylFlatBack.dae";
-//const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCyl3ObjBack.dae";
-//const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCyl3ObjBack.dae";
-//const char * ColladaFname = "D:\\Environments\\FlowV1.dae";
-
-// Specify the fly body and head angles for software corrections
-float flyAng = 30.0f * M_PI / 180;
-float lookDownAng = 0;
-
-// Specify the trial structure
+// Specify the trial structure 
 struct trial {
 	float time; // time of the trial
 	int fback; // open (0) or closed (1) loop
 	int polar; // translation (1) or rotation (0) for open loop
 	int direction; // (1 or -1, 0 to not render anything)
 	float olGain; // open loop gain (period or 360/gain = vel)
+	float clGain; // closed loop gain
 };
-//trial experiment[6] = { { 10, 1, 0, 0, 0 }, { 10, 0, 0, 1, 5 }, { 10, 0, 0, -1, 5 }, { 10, 0, 1, 1, 360 / 5 }, { 10, 0, 1, -1, 360/5 }, { 10, 1, 0, 0, 0 } };
-trial experiment[6] = { { 10, 1, 0, 0, 0 }, { 120, 1, 0, 1, 0 }, { 10, 1, 0, 0, 0 } };
+
+// Variables to set the starting conditions
+int randomreset = 1;
+float startingPos = -0.0f;
+
+// Environments and protocol for the optic flow experiments
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCylFlatBack.dae";
+//const char * ColladaFname = "D:\\Environments\\StripeBG.dae";
+//const char * ColladaFname = "D:\\Environments\\SineBG.dae";
+const char * ColladaFname = "D:\\Environments\\WhiteNoise.dae";
+trial experiment[3] = { { 5, 1, 0, 0, 0 }, { 120, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0 } };
+//trial experiment[8] = { { 5, 1, 0, 0, 0 }, { 30, 0, 0, 1, 5 }, { 30, 0, 0, -1, 5 }, { 30, 0, 0, 1, 5 }, { 30, 0, 0, -1, 5 }, { 30, 0, 0, 1, 5 }, { 30, 0, 0, -1, 5 }, { 5, 1, 0, 0, 0 } };
+//trial experiment[43] = { { 5, 1, 0, 0, 0, 1 },
+//{ 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 },
+//{ 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 },
+//{ 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 },
+//{ 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 },
+//{ 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 },
+//{ 10, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
+//trial experiment[5] = { { 5, 1, 0, 0, 0, 1 }, { 10, 1, 0, 1, 0, 1 }, { 10, 1, 0, 1, 0, 2 }, { 10, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
+
+// Environments and protocol for the jumping vs. continuous stripe experiments
+//const char * ColladaFname = "D:\\Environments\\StripeBG.dae";
+//const char * ColladaFname = "D:\\Environments\\StripeBGInv.dae";
+//trial experiment[3] = { { 10, 1, 0, 0, 0 }, { 120, 1, 0, 1, 0 }, { 10, 1, 0, 0, 0 } };
+
+
+// Environments and protocol for the translation experiments
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCylAlone.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCylFlatBack.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCyl3ObjBack.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCyl3ObjBack.dae";
+//trial experiment[3] = { { 10, 1, 0, 0, 0 }, { 180, 1, 0, 1, 0 }, { 10, 1, 0, 0, 0 } };
+
+// Inverted environments
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCylAloneInv.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCylFlatBackInv.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCyl3ObjBackInv.dae";
+
+// Optic flow style environment and protocol
+//const char * ColladaFname = "D:\\Environments\\FlowV1.dae";
+//trial experiment[6] = { { 5, 1, 0, 0, 0 }, { 15, 0, 1, 1, 360 / 5 }, { 15, 0, 1, -1, 360 / 5 }, { 15, 0, 0, 1, 5 }, { 15, 0, 0, -1, 5 }, { 35, 1, 0, 0, 0 } };
+
+
+// Specify the fly body and head angles for software corrections
+float flyAng = 30.0f * M_PI / 180;
+float lookDownAng = 0;
 
 // Tell the LED when to trigger
 int LEDRun = 0;
@@ -245,8 +280,6 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 	InitOffset();
 	Sleep(2000);
 
-	int randomreset = 1;
-
 	PFNWGLSWAPINTERVALEXTPROC       wglSwapIntervalEXT = NULL;
 	PFNWGLGETSWAPINTERVALEXTPROC    wglGetSwapIntervalEXT = NULL;
 	wglSwapIntervalEXT =
@@ -282,8 +315,8 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 			//Generate a random starting offset
 			srand(time(0));
 			io_mutex.lock();
-			BallOffsetRot = fmod(rand(), 180) - 90;
-			BallOffsetFor = -5.0f;
+			BallOffsetRot = 0.0f;
+			BallOffsetFor = startingPos;
 			BallOffsetSide = 0.0f;
 			io_mutex.unlock();
 			randomreset = 0;
@@ -305,7 +338,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 
 		//Switch contexts and draw
 		wglMakeCurrent(hdc1, hglrc);
-		RenderFrame(experiment[trialNow].fback, experiment[trialNow].polar, experiment[trialNow].direction, lookDownAng, experiment[trialNow].olGain);
+		RenderFrame(experiment[trialNow].fback, experiment[trialNow].polar, experiment[trialNow].direction, lookDownAng, experiment[trialNow].olGain, timeOffset, netTime, experiment[trialNow].clGain);
 		PDBox();
 
 		//Swapbuffers
@@ -318,9 +351,27 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 		// Pull out the relevant values
 		io_mutex.lock();
 		if (experiment[trialNow].fback)
-			BallOffsetRotNow = BallOffsetRot;
-		BallOffsetForNow = BallOffsetFor;
-		BallOffsetSideNow = BallOffsetSide;
+		{
+			if (experiment[trialNow].polar != 2)
+				BallOffsetRotNow = BallOffsetRot;
+			BallOffsetForNow = BallOffsetFor;
+			BallOffsetSideNow = BallOffsetSide;
+		}
+		else
+		{
+			if (experiment[trialNow].polar)
+			{
+				BallOffsetRotNow = BallOffsetRot;
+				BallOffsetSideNow = BallOffsetSide;
+			}
+			else
+			{
+				BallOffsetForNow = BallOffsetFor;
+				BallOffsetSideNow = BallOffsetSide;
+			}
+
+		}
+
 		dx0Now = dx0;
 		dx1Now = dx1;
 		dy0Now = dy0;
@@ -345,6 +396,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 		if (GetAsyncKeyState(VK_ESCAPE))
 			SysShutdown();
 		if (GetAsyncKeyState(VK_SCROLL))
+		//if ((netTime > 30) & (netTime < 31))
 			LEDRun = 1;
 	}
 	GLShutdown();

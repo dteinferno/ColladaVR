@@ -10,17 +10,39 @@
 #include "winmain.h"
 #include "system.h"
 #include "balloffset.h"
-#include "colladainterface.h"\
+#include "colladainterface.h"
+
+// Define variable for correlated noise
+const int numObjects = 100;
+int objState[numObjects] = { 0 }; // the state of the object
+float objRot[numObjects] = { 0.0f }; // the rotation offset of the object
+float objZ[numObjects] = { 0.0f }; // the z offset of the object
+float objZInit[numObjects] = { 0.0f }; // the z position of the object
+float objFlipT[numObjects] = { 0.0f }; // the next time for the object to flip
+int objFlipPt[numObjects] = { 0 }; // the flip time for the object to take
+
+const int numFlips = 250;
+float flipTimes[numObjects][numFlips]; //the list of times when the object flips its state
+float rotList[numObjects*numFlips] = { 0.0f }; // the list of random rotations to draw from
+int rotIndex = 0; // index to keep track of where I'm drawing the rotation from
+float zList[numObjects*numFlips] = { 0.0f }; // the list of random z shifts to draw from
+int zIndex = 0; // index to keep track of where I'm drawing the z value
+float zMin = -10.0f; //The minimum z value
+float zMax = 30.0f; // The maximum z value
+float zRange = zMax - zMin;
 
 // Define constants related to the projector angles
 float dist2stripe = 20;
 float fovAng = 80 * M_PI / 180;
-float numDivAngs = 10*3;
+float numDivAngs = 3; // usually 5 * 3
+float fovAngNow = fovAng * 3 / numDivAngs;
 
 // Define offset values (Rotational, Forward, and Lateral)
 float BallOffsetRotNow = 0.0f;
 float BallOffsetForNow = 0.0f;
 float BallOffsetSideNow = 0.0f;
+float RotOffset = 0.0f;
+float RotOffsetTemp = 0.0f;
 
 // Variable to control the direction of the open loop stripe (+/-1) AND whether or not to display anything at all (0)
 int olsdir;
@@ -152,7 +174,10 @@ glm::mat4 ViewMatrix;
 GLuint ViewID;
 glm::mat4 ModelMatrix;
 GLuint ModelID;
-glm::mat4 TransMatrix;
+glm::mat4 TransMatrix[numObjects];
+glm::mat4 ModMatrixObj[numObjects];
+int objTexID[numObjects];
+glm::mat4 identity;
 
 // InitOpenGL: initializes OpenGL; defines buffers, constants, etc...
 void InitOpenGL(void)
@@ -300,8 +325,8 @@ void InitOpenGL(void)
 	num_images = (int)tex_vec.size();
 
 	// Create a texture array
-	tex = new GLuint[num_images+4];
-	glGenTextures(num_images+4, tex);
+	tex = new GLuint[num_images+5];
+	glGenTextures(num_images+5, tex);
 
 	// Uniform white texture
 	glBindTexture(GL_TEXTURE_2D, tex[0]);
@@ -314,10 +339,21 @@ void InitOpenGL(void)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+	// Uniform black texture
+	glBindTexture(GL_TEXTURE_2D, tex[1]);
+	float pixelsB[] = {
+		0.0f, 0.0f, 0.0f,
+	};
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_FLOAT, pixelsB);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 
 	// Prep the remaining textures to be used for cylindrical distortion
 	for (int n = 0; n < 3; n++) {
-		glBindTexture(GL_TEXTURE_2D, tex[1 + n]);
+		glBindTexture(GL_TEXTURE_2D, tex[2 + n]);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -343,7 +379,7 @@ void InitOpenGL(void)
 					strncpy_s(texfname, 100, texfpath, strlen(texfpath));
 					strcat_s(texfname, 100, im_vec[ims].imageloc.c_str());
 					texImage = SOIL_load_image(texfname, &texWidth, &texHeight, 0, SOIL_LOAD_RGB);
-					glBindTexture(GL_TEXTURE_2D, tex[4 + texs]);
+					glBindTexture(GL_TEXTURE_2D, tex[5 + texs]);
 					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, texImage);
 					SOIL_free_image_data(texImage);
 				}
@@ -351,7 +387,7 @@ void InitOpenGL(void)
 		}
 		else
 		{
-			glBindTexture(GL_TEXTURE_2D, tex[4 + texs]);
+			glBindTexture(GL_TEXTURE_2D, tex[5 + texs]);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_FLOAT, tex_vec[texs].RGB);
 		}
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -374,13 +410,120 @@ void InitOpenGL(void)
 	ViewID = glGetUniformLocation(shader_program, "View");
 	ModelID = glGetUniformLocation(shader_program, "Model");
 
+	// Populate the random white noise arrays
+
+	//Read in the initial states
+	std::string strState;
+	std::ifstream startStates("D://Environments//startState.txt");
+
+	for (int stateInit = 0; stateInit < numObjects; stateInit++)
+	{
+		std::getline(startStates, strState);
+		std::stringstream ss(strState);
+		ss >> objState[stateInit];
+	}
+
+	// Read in the times when the object should flip states
+	std::ifstream flipTs("D://Environments//flipTimes.txt");
+	std::stringstream ss;
+	std::string objFlips;
+
+	for (int numObjs = 0; numObjs < numObjects; numObjs++)
+	{
+		std::getline(flipTs, objFlips);
+		ss << objFlips;
+		for (int flipNum = 0; flipNum < numFlips; flipNum++)
+		{
+			std::string objFlipVal;
+			std::getline(ss, objFlipVal, ',');
+			flipTimes[numObjs][flipNum] = atof(objFlipVal.c_str());
+			if (flipNum == 0)
+				objFlipT[numObjs] = flipTimes[numObjs][flipNum];
+		}	
+		ss << "";
+		ss.clear();
+	}
+
+	//Read in the rotational and z shifts
+	std::ifstream flipRotZ("D://Environments//flipValues.txt");
+	std::string flipVals;
+
+	for (int rotZ = 0; rotZ < 2; rotZ++)
+	{
+		std::getline(flipRotZ, flipVals);
+		ss << flipVals;
+		for (int getRotZ = 0; getRotZ < numObjects*numFlips; getRotZ++)
+		{
+			std::string objRotZ;
+			std::getline(ss, objRotZ, ',');
+			if (rotZ == 0)
+				rotList[getRotZ] = atof(objRotZ.c_str());
+			if (rotZ == 1)
+				zList[getRotZ] = atof(objRotZ.c_str());
+		}
+		ss << "";
+		ss.clear();
+	}
+
+	// Calculate the base translation matrices, find the texture ID for each object, and set the z position for each object
+	for (int i = 0; i<num_objects; i++) {
+		// Get the scaling and translation for the object
+		for (int ts = 0; ts < num_objects; ts++) {
+			if (trans_vec[ts].name == geom_vec[i].name){
+				TransMatrix[i] =
+					glm::rotate(identity, 180.0f, glm::vec3(1.0f, 0.0f, 0.0f)) *
+					glm::translate(identity, glm::vec3(trans_vec[ts].trans_data[0], trans_vec[ts].trans_data[1], trans_vec[ts].trans_data[2])) *
+					glm::rotate(identity, trans_vec[ts].rotZ_data[3], glm::vec3(trans_vec[ts].rotZ_data[0], trans_vec[ts].rotZ_data[1], trans_vec[ts].rotZ_data[2])) *
+					glm::rotate(identity, trans_vec[ts].rotY_data[3], glm::vec3(trans_vec[ts].rotY_data[0], trans_vec[ts].rotY_data[1], trans_vec[ts].rotY_data[2])) *
+					glm::rotate(identity, trans_vec[ts].rotX_data[3], glm::vec3(trans_vec[ts].rotX_data[0], trans_vec[ts].rotX_data[1], trans_vec[ts].rotX_data[2])) *
+					glm::scale(identity, glm::vec3(trans_vec[ts].scale_data[0], trans_vec[ts].scale_data[1], trans_vec[ts].scale_data[2]));
+			}
+		}
+		// Find the texture for each object
+		for (int ims = 0; ims < num_images; ims++)
+		{
+			if (geom_vec[i].texture == tex_vec[ims].name)
+			{
+				objTexID[i] = 5 + ims;	
+			}
+		}
+
+		objZInit[i] = trans_vec[i].trans_data[2]; 
+	}	
+
+	//Create a file to store the offset position at each point in time
+	//FILE *strTest;
+	//fopen_s(&strTest, "test.txt", "w");
+	//for (int i = 0; i < num_objects; i++) {
+	//	fprintf(strTest, "%f,", objZInit[i]);
+	//}
+	//fclose(strTest);
 
 }
 
-void RenderFrame(int closed, int trans, int direction, float lookDownAng, float gain)
+void RenderFrame(int closed, int trans, int direction, float lookDownAng, float gain, float timeStart, float timeNow, float clGain)
 {
-	glm::mat4 identity;
+	//Check to see if the object has flipped and update random offset values.
+	for (int i = 0; i < num_objects; i++) {
+		if (objFlipT[i] < timeNow)
+		{
+			objFlipPt[i] = objFlipPt[i] + 1;
+			objFlipT[i] = flipTimes[i][objFlipPt[i]];
+			objState[i] = ~objState[i];
+			objRot[i] = rotList[rotIndex];
+			rotIndex++;
+			//if (zMax > (objZInit[i] + zList[zIndex]))
+			//	objZ[i] = -zList[zIndex];
+			//else
+			//	objZ[i] = zRange-zList[zIndex];
+			zIndex++;
+			ModMatrixObj[i] = glm::translate(identity, glm::vec3(0.0f, 0.0f, objZ[i]))*glm::rotate(identity, objRot[i], glm::vec3(0.0f, 0.0f, 1.0f)) * TransMatrix[i];
+		}
+		//ModMatrixObj[i] = TransMatrix[i];
+	}
 
+	ProjectionMatrix = glm::perspective(float(360 / M_PI * atanf(tanf(fovAngNow / 2) * float(SCRHEIGHT / 2) / float(SCRWIDTH * 3 / numDivAngs))), float(SCRWIDTH * 3 / numDivAngs) / float(SCRHEIGHT / 2), 0.1f, 1000.0f); //Set the perspective for the projector
+	glUniformMatrix4fv(ProjectionID, 1, false, glm::value_ptr(ProjectionMatrix));
 	// Map the desired image onto the three different colors
 	for (int n = 0; n < 3; n++) {
 
@@ -396,70 +539,58 @@ void RenderFrame(int closed, int trans, int direction, float lookDownAng, float 
 		for (int windowNum = 0; windowNum < numDivAngs; windowNum++) {
 
 			// Define the scene to be captured
-			glViewport(SCRWIDTH*windowNum / numDivAngs, 0, SCRWIDTH / numDivAngs, SCRHEIGHT); // Restrict the viewport to the region of interest
-			float fovAngNow = fovAng * 3 / numDivAngs;
+			glViewport(SCRWIDTH*windowNum / numDivAngs, SCRHEIGHT / 4, SCRWIDTH / numDivAngs, SCRHEIGHT / 2 ); // Restrict the viewport to the region of interest
 			float angNow = fovAngNow * (windowNum - (numDivAngs - 1)/2);
-			ProjectionMatrix = glm::perspective(float(360 / M_PI * atanf(tanf(fovAngNow / 2) * float(SCRHEIGHT) / float(SCRWIDTH * 3 / numDivAngs))), float(SCRWIDTH * 3 / numDivAngs) / float(SCRHEIGHT), 0.1f, 1000.0f); //Set the perspective for the projector
 			ViewMatrix = glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(sinf(angNow), cosf(angNow), 0), glm::vec3(0, 0, 1)) * glm::rotate(identity, lookDownAng, glm::vec3(1.0f, 0.0f, 0.0f)); //Look at the appropriate direction for the projector
-
-			glUniformMatrix4fv(ProjectionID, 1, false, glm::value_ptr(ProjectionMatrix));
 			glUniformMatrix4fv(ViewID, 1, false, glm::value_ptr(ViewMatrix));
 
 			if (closed) // Advance the environment according to the ball movement
 			{
 				io_mutex.lock();
-				BallOffsetRotNow =  BallOffsetRot;
 				BallOffsetForNow =  BallOffsetFor;
 				BallOffsetSideNow = BallOffsetSide;
+				if (trans == 2)
+				{
+					TimeOffset(BallOffsetRotNow, direction, timeStart, gain);
+					RotOffset = 2*BallOffsetRotNow-RotOffset;
+				}
+				BallOffsetRotNow = clGain*(BallOffsetRot - BallOffsetRotNow) + BallOffsetRotNow + RotOffset;
 				io_mutex.unlock();
+
 			}
 			else  // Advance the environment according to open loop parameters
 			{
-				if (trans)
+				if (trans == 1)
 				{
-					TimeOffset(BallOffsetForNow, direction, CounterStart, gain);
+					TimeOffset(BallOffsetForNow, direction, timeStart, gain);
 					BallOffsetRotNow = 0.0f;
 				}
-				else
+				if (trans == 0)
 				{
-					TimeOffset(BallOffsetRotNow, direction, CounterStart, gain);
+					TimeOffset(BallOffsetRotNow, direction, timeStart, gain);
 					BallOffsetForNow = 0.0f;
 				}
 				BallOffsetSideNow = 0.0f;
 			}
 
-			// Apply the movement
 			ModelMatrix =
 				glm::rotate(identity, BallOffsetRotNow, glm::vec3(0.0f, 0.0f, 1.0f)) *
 				glm::translate(identity, glm::vec3(-BallOffsetSideNow, -BallOffsetForNow, 0.0f));
 			
-			//Get the object transformation
-			float xScale,yScale,zScale,xRot,yRot,zRot,xTrans,yTrans,zTrans;
-
 			// Draw each object
 			for (int i = 0; i<num_objects; i++) {
-				// Get the scaling and translation for the object
-				for (int ts = 0; ts < num_objects; ts++) {
-					if (trans_vec[ts].name == geom_vec[i].name){
-						TransMatrix = glm::rotate(identity, 180.0f, glm::vec3(1.0f, 0.0f, 0.0f)) *
-							glm::translate(identity, glm::vec3(trans_vec[ts].trans_data[0], trans_vec[ts].trans_data[1], trans_vec[ts].trans_data[2])) *
-							glm::scale(identity, glm::vec3(trans_vec[ts].scale_data[0], trans_vec[ts].scale_data[1], trans_vec[ts].scale_data[2]));
-					}
-				}
-				glUniformMatrix4fv(ModelID, 1, false, glm::value_ptr(ModelMatrix*TransMatrix));
-				for (int ims = 0; ims < num_images; ims++)
-				{
-					if (geom_vec[i].texture == tex_vec[ims].name)
-					{
-						glBindTexture(GL_TEXTURE_2D, tex[4 + ims]); // Bind the appropriate texture
-						glBindVertexArray(vaos[i]);
-						glDrawArrays(GL_TRIANGLES, 0, geom_vec[i].index_count);
-					}
-				}
+				glUniformMatrix4fv(ModelID, 1, false, glm::value_ptr(ModelMatrix*ModMatrixObj[i]));
+				// Flip objects off and on
+				if (objState[i])
+					glBindTexture(GL_TEXTURE_2D, tex[objTexID[i]]); // Bind the appropriate texture
+				else
+					glBindTexture(GL_TEXTURE_2D, tex[1]);
+				glBindVertexArray(vaos[i]);
+				glDrawArrays(GL_TRIANGLES, 0, geom_vec[i].index_count);
 			}
 		}
 		// Capture the stripe as a texture
-		glBindTexture(GL_TEXTURE_2D, tex[1 + n]);
+		glBindTexture(GL_TEXTURE_2D, tex[2 + n]);
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, SCRWIDTH, SCRHEIGHT, 0);
 	}
 
@@ -486,7 +617,7 @@ void RenderFrame(int closed, int trans, int direction, float lookDownAng, float 
 
 		// Draw the rectangle
 		for (int n = 0; n < 3; n++) {
-			glBindTexture(GL_TEXTURE_2D, tex[1+n]);
+			glBindTexture(GL_TEXTURE_2D, tex[2+n]);
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
 		}
 
@@ -632,7 +763,7 @@ bool loadOBJ(SourceData Vertex, SourceData Normal, SourceData Texcoord, int numI
 // Clear the buffers on shutdown
 void GLShutdown(void)
 {
-	glDeleteTextures(num_images+4, tex);
+	glDeleteTextures(num_images+5, tex);
 	glDeleteProgram(shader_program);
 	glDeleteShader(fs);
 	glDeleteShader(vs);

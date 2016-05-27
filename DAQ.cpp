@@ -19,10 +19,10 @@ FILE *str;
 int DAQDat(void)
 {
 	int opRate = 1000;
-	int numPulses = 10;
+	int numPulses = 20;
 	float freqPulses = 10.0;
-	int widthPulses = 50;
-	int pulseAmp = 4;
+	int widthPulses = 20;
+	int pulseAmp = 2;
 	int lPulseTrain = 1 + round(numPulses * opRate / freqPulses);
 	int numHigh = opRate* widthPulses / 1000;
 

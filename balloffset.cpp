@@ -10,6 +10,9 @@
 #include "balloffset.h""
 #include "DAQ.h"
 
+// Specify whether the stripe is continuous (0) or jumps across the back (1)
+int jump = 0;
+
 // Set up a counter for the open loop object changes
 LARGE_INTEGER li;
 float PCFreq = 0;
@@ -60,7 +63,7 @@ void InitOffset()
 void TimeOffset(float &tOffset, int dir, __int64 start, float period) {
 	// get delta time for this iteration:
 	QueryPerformanceCounter(&li);
-	float fDeltaTime = (li.QuadPart - start) / PCFreq;
+	float fDeltaTime = ((li.QuadPart - CounterStart)/ PCFreq) - start;
 	float gain = 360 / period;
 	tOffset = dir*fDeltaTime*gain;
 }
@@ -129,32 +132,32 @@ void TreadMillStart()
 void TreadMillDat()
 {
 	//Set the calibration factor
-	float Cam1RotCalibfact = 0.88;//1.67
-	float Cam2RotCalibfact = 0.94;//1.37
-	float Cam1PosCalibfact = 162;//114
-	float Cam2PosCalibfact = 152;//139
+	float Cam1RotCalibfact = 1.15;
+	float Cam2RotCalibfact = 0.815;
+	float Cam1PosCalibfact = 124;
+	float Cam2PosCalibfact = 176;
 
 	//Camera Data Bins
 	int dx[2], dy[2];
 	float dxmod[2], dymod[2];
 
 	// FTDI variables
-	unsigned char rBuffer[480];
+	unsigned char rBuffer[240];
 	DWORD rxBytes;
 
 	while (1)
 	{
 		//Read 40 packets of data (12 bytes per packet)
-		FT_Read(ftHandle, rBuffer, 40 * 12, &rxBytes);
+		FT_Read(ftHandle, rBuffer, 20 * 12, &rxBytes);
 
-		if (rxBytes != 480){
+		if (rxBytes != 240){
 			printf("Bad Read\n");
 			Sleep(1);
 		}
 
 		//Accumulate Motion Data for this 100Hz chunk
 		dx[0] = 0; dx[1] = 0; dy[0] = 0; dy[1] = 0;
-		for (int i = 0; i < 480; i += 12){
+		for (int i = 0; i < 240; i += 12){
 			dx[0] += ((int)rBuffer[i + 2]) - 128;
 			dy[0] += ((int)rBuffer[i + 3]) - 128;
 			dx[1] += ((int)rBuffer[i + 4]) - 128;
@@ -195,6 +198,13 @@ void TreadMillDat()
 				BallOffsetFor = BoundaryStopCorrection * (BallOffsetFor - trans_vec[obj].trans_data[1]) + trans_vec[obj].trans_data[1];
 				BallOffsetSide = BoundaryStopCorrection * (BallOffsetSide - trans_vec[obj].trans_data[0]) + trans_vec[obj].trans_data[0];
 			}
+		}
+		if (jump)
+		{
+			if (BallOffsetRot > 105.0f)
+				BallOffsetRot = BallOffsetRot-240;
+			if (BallOffsetRot < -135.0f)
+				BallOffsetRot = 240.0f + BallOffsetRot;
 		}
 
 		dx0 += (float)dx[0];

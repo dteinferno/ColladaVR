@@ -117,9 +117,10 @@ void ColladaInterface::readGeometries(std::vector<ColGeom>* v, const char* filen
 
 void ColladaInterface::readTransformations(std::vector<ColTrans>* v, const char* filename) {
 
-	TiXmlElement *node, *translate, *scale;
-	char * transtext, *scaletext;
+	TiXmlElement *node, *translate, *rotate, *scale;
+	char * transtext, *rottext, *scaletext;
 	char *trans_next_token = NULL;
+	char *rot_next_token = NULL;
 	char *scale_next_token = NULL;
 
 	// Create new transformation
@@ -147,6 +148,39 @@ void ColladaInterface::readTransformations(std::vector<ColTrans>* v, const char*
 		((float*)data.trans_data)[0] = atof(strtok_s(transtext, " ", &trans_next_token));
 		for (unsigned int index = 1; index<3; index++) {
 			((float*)data.trans_data)[index] = atof(strtok_s(NULL, " ", &trans_next_token));
+		}
+
+		// Extract the Z rotation valus
+		rotate = node->FirstChildElement("rotate");
+		rottext = (char*)(rotate->GetText()); // Read array values
+		data.rotZ_data = (float *)malloc(4 * sizeof(float));
+
+		// Read the float values
+		((float*)data.rotZ_data)[0] = atof(strtok_s(rottext, " ", &rot_next_token));
+		for (unsigned int index = 1; index<4; index++) {
+			((float*)data.rotZ_data)[index] = atof(strtok_s(NULL, " ", &rot_next_token));
+		}
+
+		// Extract the Y rotation valus
+		rotate = rotate->NextSiblingElement("rotate");
+		rottext = (char*)(rotate->GetText()); // Read array values
+		data.rotY_data = (float *)malloc(4 * sizeof(float));
+
+		// Read the float values
+		((float*)data.rotY_data)[0] = atof(strtok_s(rottext, " ", &rot_next_token));
+		for (unsigned int index = 1; index<4; index++) {
+			((float*)data.rotY_data)[index] = atof(strtok_s(NULL, " ", &rot_next_token));
+		}
+
+		// Extract the X rotation valus
+		rotate = rotate->NextSiblingElement("rotate");
+		rottext = (char*)(rotate->GetText()); // Read array values
+		data.rotX_data = (float *)malloc(4 * sizeof(float));
+
+		// Read the float values
+		((float*)data.rotX_data)[0] = atof(strtok_s(rottext, " ", &rot_next_token));
+		for (unsigned int index = 1; index<4; index++) {
+			((float*)data.rotX_data)[index] = atof(strtok_s(NULL, " ", &rot_next_token));
 		}
 
 		// Extract the scale values

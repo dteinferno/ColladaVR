@@ -46,6 +46,10 @@ GLEW has been tested on a variety of operating systems, including Windows, Linux
 #define M_PI 3.1415926535
 #endif
 
+#include <fstream>
+#include <iostream>
+#include <sstream>
+
 // COLLADA filename
 extern const char * ColladaFname;
 
@@ -61,7 +65,7 @@ extern std::vector<ColTrans> trans_vec;
 void InitOpenGL(void);
 
 // Draw the scene
-void RenderFrame(int closed, int trans, int direction, float lookDownAng, float gain);
+void RenderFrame(int closed, int trans, int direction, float lookDownAng, float gain, float timeStart, float timeNow, float clGain);
 
 void PDBox(void);
 
