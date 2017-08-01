@@ -10,9 +10,6 @@
 #include "balloffset.h""
 #include "DAQ.h"
 
-// Specify whether the stripe is continuous (0) or jumps across the back (1)
-int jump = 0;
-
 // Set up a counter for the open loop object changes
 LARGE_INTEGER li;
 float PCFreq = 0;
@@ -128,14 +125,14 @@ void TreadMillStart()
 	FT_Write(ftHandle, wBuffer, 2, &txBytes);
 }
 
-//Run the treadmill at 100 Hz and continuosly update the offset. 
+//Run the treadmill at 200 Hz and continuosly update the offset. 
 void TreadMillDat()
 {
 	//Set the calibration factor
-	float Cam1RotCalibfact = 1.15;
-	float Cam2RotCalibfact = 0.815;
-	float Cam1PosCalibfact = 124;
-	float Cam2PosCalibfact = 176;
+	float Cam1RotCalibfact = 1.19;// 1.12;
+	float Cam2RotCalibfact = 1.12;// 1.02;// 1.08;
+	float Cam1PosCalibfact = 163;// 128;
+	float Cam2PosCalibfact = 174;// 140;// 133;
 
 	//Camera Data Bins
 	int dx[2], dy[2];
@@ -155,7 +152,7 @@ void TreadMillDat()
 			Sleep(1);
 		}
 
-		//Accumulate Motion Data for this 100Hz chunk
+		//Accumulate Motion Data for this 200Hz chunk
 		dx[0] = 0; dx[1] = 0; dy[0] = 0; dy[1] = 0;
 		for (int i = 0; i < 240; i += 12){
 			dx[0] += ((int)rBuffer[i + 2]) - 128;
@@ -198,13 +195,6 @@ void TreadMillDat()
 				BallOffsetFor = BoundaryStopCorrection * (BallOffsetFor - trans_vec[obj].trans_data[1]) + trans_vec[obj].trans_data[1];
 				BallOffsetSide = BoundaryStopCorrection * (BallOffsetSide - trans_vec[obj].trans_data[0]) + trans_vec[obj].trans_data[0];
 			}
-		}
-		if (jump)
-		{
-			if (BallOffsetRot > 105.0f)
-				BallOffsetRot = BallOffsetRot-240;
-			if (BallOffsetRot < -135.0f)
-				BallOffsetRot = 240.0f + BallOffsetRot;
 		}
 
 		dx0 += (float)dx[0];

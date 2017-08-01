@@ -19,10 +19,10 @@ FILE *str;
 int DAQDat(void)
 {
 	int opRate = 1000;
-	int numPulses = 20;
-	float freqPulses = 10.0;
-	int widthPulses = 20;
-	int pulseAmp = 2;
+	int numPulses = 60;
+	float freqPulses = 1.0;
+	int widthPulses = 500;
+	int pulseAmp = 5;
 	int lPulseTrain = 1 + round(numPulses * opRate / freqPulses);
 	int numHigh = opRate* widthPulses / 1000;
 
@@ -30,7 +30,7 @@ int DAQDat(void)
 	TaskHandle  outputTaskHandle = 0;
 	TaskHandle  inputTaskHandle = 0;
 	float64     pulseData[3];
-	float64		LEDData[30000];
+	float64		LEDData[120000];
 	char        errBuff[2048] = { '\0' };
 	int         i = 0;
 	int32   	written;
@@ -44,7 +44,7 @@ int DAQDat(void)
 
 	// LED pulse train
 	// Set up the pulse trains
-	for (int step = 0; step < 30000; step++)
+	for (int step = 0; step < 120000; step++)
 	{
 		LEDData[step] = 0;
 		for (int pulse = 0; pulse < numPulses; pulse++)
@@ -97,13 +97,13 @@ int DAQDat(void)
 	/*********************************************/
 	DAQmxErrChk(DAQmxCreateTask("", &outputTaskHandle));
 	DAQmxErrChk(DAQmxCreateAOVoltageChan(outputTaskHandle, "Dev1/ao1", "", -10.0, 10.0, DAQmx_Val_Volts, NULL));
-	DAQmxErrChk(DAQmxCfgSampClkTiming(outputTaskHandle, "", opRate, DAQmx_Val_Rising, DAQmx_Val_FiniteSamps, 30000));
+	DAQmxErrChk(DAQmxCfgSampClkTiming(outputTaskHandle, "", opRate, DAQmx_Val_Rising, DAQmx_Val_FiniteSamps, 120000));
 	DAQmxErrChk(DAQmxRegisterDoneEvent(outputTaskHandle, 0, DoneCallback, NULL));
 
 	/*********************************************/
 	// DAQmx Write Code for the output
 	/*********************************************/
-	DAQmxErrChk(DAQmxWriteAnalogF64(outputTaskHandle, 30000, 0, 10.0, DAQmx_Val_GroupByChannel, LEDData, &written, NULL));
+	DAQmxErrChk(DAQmxWriteAnalogF64(outputTaskHandle, 120000, 0, 10.0, DAQmx_Val_GroupByChannel, LEDData, &written, NULL));
 
 	/*********************************************/
 	// Run the DAQ Acquisition

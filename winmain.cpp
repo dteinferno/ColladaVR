@@ -39,15 +39,46 @@ struct trial {
 
 // Variables to set the starting conditions
 int randomreset = 1;
-float startingPos = -0.0f;
+float startingPos = -5.0f;
+
+// Specify the fly body and head angles for software corrections
+float flyAng = 30.0f * M_PI / 180;
+float lookDownAng = 0;
+
+int jumpStripe = 0;
+// Environments and protocol for probing PB-FB activity
+const char * ColladaFname = "D:\\Environments\\StripeBG.dae";
+//const char * ColladaFname = "D:\\Environments\\AllOn.dae";
+//const char * ColladaFname = "D:\\Environments\\FlowV1.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCylV1z_LightCylFlatBack.dae";
+//trial experiment[3] = { { 5, 1, 0, 0, 0, 1 }, { 120, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
+trial experiment[4] = { { 60, 1, 0, 0, 0, 1 }, { 60, 1, 0, 1, 0, 0.75 }, { 60, 1, 0, 1, 0, 1.25 }, { 5, 1, 0, 0, 0, 1 }, };
+//trial experiment[3] = { { 5, 1, 0, 0, 0, 1 }, { 120, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
+//trial experiment[10] = { { 5, 1, 0, 0, 0, 1 },
+//{ 15, 0, 1, 1, 360 / 10, 1 }, { 15, 0, 1, -1, 360 / 10, 1 }, { 15, 0, 0, 1, 5, 1 }, { 15, 0, 0, -1, 5, 1 },
+//{ 15, 0, 1, 1, 360 / 10, 1 }, { 15, 0, 1, -1, 360 / 10, 1 }, { 15, 0, 0, 1, 5, 1 }, { 15, 0, 0, -1, 5, 1 },
+//{ 5, 1, 0, 0, 0 } };
+//trial experiment[2] = { { 30, 1, 0, 0, 0, 1 }, { 120, 1, 0, 1, 0, 1 }};
+//trial experiment[14] = { { 5, 1, 0, 0, 0, 1 },
+//{ 15, 0, 1, 1, 360 / 5, 1 }, { 15, 0, 1, -1, 360 / 5, 1 }, { 15, 0, 0, 1, 5, 1 }, { 15, 0, 0, -1, 5, 1 },
+//{ 15, 0, 1, 1, 360 / 5, 1 }, { 15, 0, 1, -1, 360 / 5, 1 }, { 15, 0, 0, 1, 5, 1 }, { 15, 0, 0, -1, 5, 1 },
+//{ 15, 0, 1, 1, 360 / 5, 1 }, { 15, 0, 1, -1, 360 / 5, 1 }, { 15, 0, 0, 1, 5, 1 }, { 15, 0, 0, -1, 5, 1 },
+//{ 5, 1, 0, 0, 0 } };
 
 // Environments and protocol for the optic flow experiments
 //const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCylFlatBack.dae";
 //const char * ColladaFname = "D:\\Environments\\StripeBG.dae";
 //const char * ColladaFname = "D:\\Environments\\SineBG.dae";
-const char * ColladaFname = "D:\\Environments\\WhiteNoise.dae";
-trial experiment[3] = { { 5, 1, 0, 0, 0 }, { 120, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0 } };
-//trial experiment[8] = { { 5, 1, 0, 0, 0 }, { 30, 0, 0, 1, 5 }, { 30, 0, 0, -1, 5 }, { 30, 0, 0, 1, 5 }, { 30, 0, 0, -1, 5 }, { 30, 0, 0, 1, 5 }, { 30, 0, 0, -1, 5 }, { 5, 1, 0, 0, 0 } };
+//const char * ColladaFname = "D:\\Environments\\WhiteNoise.dae";
+//const char * ColladaFname = "D:\\Environments\\TreeTestBack.dae";
+//trial experiment[3] = { { 5, 1, 0, 0, 0, 1 }, { 120, 1, 0, 0, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
+//trial experiment[12] = { { 5, 1, 0, 0, 0, 1 },
+//{ 30, 0, 0, 1, 5, 1 }, { 30, 0, 0, -1, 5, 1 },
+//{ 30, 0, 0, 1, 5, 1 }, { 30, 0, 0, -1, 5, 1 },
+//{ 30, 0, 0, 1, 5, 1 }, { 30, 0, 0, -1, 5, 1 },
+//{ 30, 0, 0, 1, 5, 1 }, { 30, 0, 0, -1, 5, 1 },
+//{ 30, 0, 0, 1, 5, 1 }, { 30, 0, 0, -1, 5, 1 },
+//{ 5, 1, 0, 0, 0, 1 } };
 //trial experiment[43] = { { 5, 1, 0, 0, 0, 1 },
 //{ 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 },
 //{ 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, 1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 }, { 10, 1, 0, 1, 0, 1 }, { 3, 1, 2, -1, 6, 1 },
@@ -68,7 +99,7 @@ trial experiment[3] = { { 5, 1, 0, 0, 0 }, { 120, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0,
 //const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCylFlatBack.dae";
 //const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCyl3ObjBack.dae";
 //const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCyl3ObjBack.dae";
-//trial experiment[3] = { { 10, 1, 0, 0, 0 }, { 180, 1, 0, 1, 0 }, { 10, 1, 0, 0, 0 } };
+//trial experiment[3] = { { 10, 1, 0, 0, 0, 1 }, { 180, 1, 0, 1, 0, 1 }, { 10, 1, 0, 0, 0, 1 } };
 
 // Inverted environments
 //const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCylAloneInv.dae";
@@ -79,10 +110,20 @@ trial experiment[3] = { { 5, 1, 0, 0, 0 }, { 120, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0,
 //const char * ColladaFname = "D:\\Environments\\FlowV1.dae";
 //trial experiment[6] = { { 5, 1, 0, 0, 0 }, { 15, 0, 1, 1, 360 / 5 }, { 15, 0, 1, -1, 360 / 5 }, { 15, 0, 0, 1, 5 }, { 15, 0, 0, -1, 5 }, { 35, 1, 0, 0, 0 } };
 
+// Cluttered background
+//const char * ColladaFname = "D:\\Environments\\ClutterBack.dae";
+//const char * ColladaFname = "D:\\Environments\\MSClutterBack.dae";
+//const char * ColladaFname = "D:\\Environments\\RealClutterBack.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCylFlatBack.dae";
+//const char * ColladaFname = "D:\\Environments\\CylClutterBack.dae";
+//trial experiment[3] = { { 5, 1, 0, 0, 0, 1 }, { 120, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
 
-// Specify the fly body and head angles for software corrections
-float flyAng = 30.0f * M_PI / 180;
-float lookDownAng = 0;
+// Bump tracking behavior
+//const char * ColladaFname = "D:\\Environments\\StripeBG.dae";
+//const char * ColladaFname = "D:\\Environments\\ClutterBack.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCyl_ClutterBack.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCyl3ObjBack.dae";
+//trial experiment[3] = { { 5, 1, 0, 0, 0, 1 }, { 60, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
 
 // Tell the LED when to trigger
 int LEDRun = 0;
@@ -350,27 +391,26 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 
 		// Pull out the relevant values
 		io_mutex.lock();
-		if (experiment[trialNow].fback)
-		{
-			if (experiment[trialNow].polar != 2)
-				BallOffsetRotNow = BallOffsetRot;
-			BallOffsetForNow = BallOffsetFor;
-			BallOffsetSideNow = BallOffsetSide;
-		}
-		else
-		{
-			if (experiment[trialNow].polar)
-			{
-				BallOffsetRotNow = BallOffsetRot;
-				BallOffsetSideNow = BallOffsetSide;
-			}
-			else
-			{
-				BallOffsetForNow = BallOffsetFor;
-				BallOffsetSideNow = BallOffsetSide;
-			}
-
-		}
+		//if (experiment[trialNow].fback)
+		//{
+		//	if (experiment[trialNow].polar != 2)
+		//		BallOffsetRotNow = BallOffsetRot;
+		//	BallOffsetForNow = BallOffsetFor;
+		//	BallOffsetSideNow = BallOffsetSide;
+		//}
+		//else
+		//{
+		//	if (experiment[trialNow].polar)
+		//	{
+		//		BallOffsetRotNow = BallOffsetRot;
+		//		BallOffsetSideNow = BallOffsetSide;
+		//	}
+		//	else
+		//	{
+		//		BallOffsetForNow = BallOffsetFor;
+		//		BallOffsetSideNow = BallOffsetSide;
+		//	}
+		//}
 
 		dx0Now = dx0;
 		dx1Now = dx1;
@@ -391,13 +431,26 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 		fprintf(str, "closed:\t%d\t", experiment[trialNow].fback);
 		fprintf(str, "olsdir:\t%d\t", experiment[trialNow].direction);
 		fprintf(str, "trans:\t%d\t", experiment[trialNow].polar);
-		fprintf(str, "gain:\t%f\n", experiment[trialNow].olGain);
+		fprintf(str, "olgain:\t%f\n", experiment[trialNow].olGain);
+		fprintf(str, "clgain:\t%f\n", experiment[trialNow].clGain);
 
 		if (GetAsyncKeyState(VK_ESCAPE))
 			SysShutdown();
-		if (GetAsyncKeyState(VK_SCROLL))
-		//if ((netTime > 30) & (netTime < 31))
-			LEDRun = 1;
+		//if (GetAsyncKeyState(VK_SCROLL))
+		//if ((netTime > 10) & (netTime < 10.1))
+		//	LEDRun = 1;
+		if (jumpStripe)
+		{
+			if ((netTime > 55) & (netTime < 55.1))
+			{
+				experiment[trialNow].polar = 3;
+			}
+			if ((netTime > 105) & (netTime < 105.1))
+			{
+				experiment[trialNow].polar = 4;
+			}
+		}
+			
 	}
 	GLShutdown();
 	fclose(str);

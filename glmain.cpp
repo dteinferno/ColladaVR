@@ -12,6 +12,9 @@
 #include "balloffset.h"
 #include "colladainterface.h"
 
+// Specify whether the stripe is continuous (0) or jumps across the back (1)
+int jump = 1;
+
 // Define variable for correlated noise
 const int numObjects = 100;
 int objState[numObjects] = { 0 }; // the state of the object
@@ -519,7 +522,7 @@ void RenderFrame(int closed, int trans, int direction, float lookDownAng, float 
 			zIndex++;
 			ModMatrixObj[i] = glm::translate(identity, glm::vec3(0.0f, 0.0f, objZ[i]))*glm::rotate(identity, objRot[i], glm::vec3(0.0f, 0.0f, 1.0f)) * TransMatrix[i];
 		}
-		//ModMatrixObj[i] = TransMatrix[i];
+		ModMatrixObj[i] = TransMatrix[i];
 	}
 
 	ProjectionMatrix = glm::perspective(float(360 / M_PI * atanf(tanf(fovAngNow / 2) * float(SCRHEIGHT / 2) / float(SCRWIDTH * 3 / numDivAngs))), float(SCRWIDTH * 3 / numDivAngs) / float(SCRHEIGHT / 2), 0.1f, 1000.0f); //Set the perspective for the projector
@@ -554,7 +557,23 @@ void RenderFrame(int closed, int trans, int direction, float lookDownAng, float 
 					TimeOffset(BallOffsetRotNow, direction, timeStart, gain);
 					RotOffset = 2*BallOffsetRotNow-RotOffset;
 				}
-				BallOffsetRotNow = clGain*(BallOffsetRot - BallOffsetRotNow) + BallOffsetRotNow + RotOffset;
+				if (trans == 3)
+				{
+					RotOffset = 60;
+				}
+				if (trans == 4)
+				{
+					RotOffset = 0;
+				}
+				if (clGain >= 0)
+				{
+					BallOffsetRotNow = clGain*BallOffsetRot + RotOffset;
+				}
+				else
+				{
+					BallOffsetRotNow = clGain*BallOffsetRot;
+				}
+
 				io_mutex.unlock();
 
 			}
@@ -573,6 +592,26 @@ void RenderFrame(int closed, int trans, int direction, float lookDownAng, float 
 				BallOffsetSideNow = 0.0f;
 			}
 
+			int intBOR = int(BallOffsetRotNow) + 180;
+			if (jump)
+			{
+				if (intBOR % 360 > 300)
+				{
+					BallOffsetRotNow = BallOffsetRotNow - 240.0f;
+					io_mutex.lock();
+					BallOffsetRot = BallOffsetRot - 240.0f/clGain;
+					io_mutex.unlock();
+
+				}
+				if (intBOR % 360 < 60)
+				{
+					BallOffsetRotNow = 240.0f + BallOffsetRotNow;
+					io_mutex.lock();
+					BallOffsetRot = BallOffsetRot + 240.0f/clGain;
+					io_mutex.unlock();
+				}
+			}
+
 			ModelMatrix =
 				glm::rotate(identity, BallOffsetRotNow, glm::vec3(0.0f, 0.0f, 1.0f)) *
 				glm::translate(identity, glm::vec3(-BallOffsetSideNow, -BallOffsetForNow, 0.0f));
@@ -581,10 +620,10 @@ void RenderFrame(int closed, int trans, int direction, float lookDownAng, float 
 			for (int i = 0; i<num_objects; i++) {
 				glUniformMatrix4fv(ModelID, 1, false, glm::value_ptr(ModelMatrix*ModMatrixObj[i]));
 				// Flip objects off and on
-				if (objState[i])
+				//if (objState[i])
 					glBindTexture(GL_TEXTURE_2D, tex[objTexID[i]]); // Bind the appropriate texture
-				else
-					glBindTexture(GL_TEXTURE_2D, tex[1]);
+				//else
+				//	glBindTexture(GL_TEXTURE_2D, tex[1]);
 				glBindVertexArray(vaos[i]);
 				glDrawArrays(GL_TRIANGLES, 0, geom_vec[i].index_count);
 			}
