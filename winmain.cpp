@@ -45,14 +45,19 @@ float startingPos = -5.0f;
 float flyAng = 30.0f * M_PI / 180;
 float lookDownAng = 0;
 
-int jumpStripe = 0;
+int jumpStripe = 00; // also set stripe to be continuous in glmain
+
+const char * ColladaFname = "D:\\Environments\\Grid.dae";
+
 // Environments and protocol for probing PB-FB activity
-const char * ColladaFname = "D:\\Environments\\StripeBG.dae";
+//const char * ColladaFname = "D:\\Environments\\StripeBG.dae";
+//const char * ColladaFname = "D:\\Environments\\FullScene.dae";
 //const char * ColladaFname = "D:\\Environments\\AllOn.dae";
 //const char * ColladaFname = "D:\\Environments\\FlowV1.dae";
 //const char * ColladaFname = "D:\\Environments\\OneCylV1z_LightCylFlatBack.dae";
-//trial experiment[3] = { { 5, 1, 0, 0, 0, 1 }, { 120, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
-trial experiment[4] = { { 60, 1, 0, 0, 0, 1 }, { 60, 1, 0, 1, 0, 0.75 }, { 60, 1, 0, 1, 0, 1.25 }, { 5, 1, 0, 0, 0, 1 }, };
+trial experiment[3] = { { 5, 1, 0, 0, 0, 1 }, { 600, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
+//trial experiment[3] = { { 60, 1, 0, 0, 0, 1 }, { 140, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 }, };
+//trial experiment[4] = { { 60, 1, 0, 0, 0, 1 }, { 60, 1, 0, 1, 0, 0.75 }, { 60, 1, 0, 1, 0, 1.25 }, { 5, 1, 0, 0, 0, 1 }, };
 //trial experiment[3] = { { 5, 1, 0, 0, 0, 1 }, { 120, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
 //trial experiment[10] = { { 5, 1, 0, 0, 0, 1 },
 //{ 15, 0, 1, 1, 360 / 10, 1 }, { 15, 0, 1, -1, 360 / 10, 1 }, { 15, 0, 0, 1, 5, 1 }, { 15, 0, 0, -1, 5, 1 },
@@ -441,11 +446,11 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 		//	LEDRun = 1;
 		if (jumpStripe)
 		{
-			if ((netTime > 55) & (netTime < 55.1))
+			if ((netTime > 120) & (netTime < 120.1))
 			{
 				experiment[trialNow].polar = 3;
 			}
-			if ((netTime > 105) & (netTime < 105.1))
+			if ((netTime > 170) & (netTime < 170.1))
 			{
 				experiment[trialNow].polar = 4;
 			}

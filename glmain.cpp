@@ -13,7 +13,7 @@
 #include "colladainterface.h"
 
 // Specify whether the stripe is continuous (0) or jumps across the back (1)
-int jump = 1;
+int jump = 0;
 
 // Define variable for correlated noise
 const int numObjects = 100;
@@ -37,7 +37,7 @@ float zRange = zMax - zMin;
 // Define constants related to the projector angles
 float dist2stripe = 20;
 float fovAng = 80 * M_PI / 180;
-float numDivAngs = 3; // usually 5 * 3
+float numDivAngs = 5*3; // usually 5 * 3
 float fovAngNow = fovAng * 3 / numDivAngs;
 
 // Define offset values (Rotational, Forward, and Lateral)
@@ -74,16 +74,11 @@ const char* fragment_shader =
 "out vec4 frag_colour;"
 "uniform int color;"
 "uniform float cyl;"
-"uniform int projnum;"
 "uniform sampler2D tex;"
 "void main () {"
 
 "  float LtoScreen = 6.55;"
 "  float wofScreen = 1.93;"
-"  float proj0power = 0.7;"
-"  float proj1power = 0.8;"
-"  float proj2power = 1;"
-"  float projnorm = min(proj0power, min(proj1power, proj2power));"
 
 "  float angofScreen = 4*3.141592/9;"
 
@@ -95,20 +90,21 @@ const char* fragment_shader =
 
 "  float texshiftt = Texcoord.t-0.5;"
 "  float modtfactor = (1.5 - sqrt(1.5*1.5-texshifts*texshifts))/LtoScreen + 1.0;"
-"  float distorttinit = texshiftt*modtfactor + 0.5;"
+"  float distortt = texshiftt*modtfactor + 0.5;"
 
 "  float texchop = 3*Texcoord.s;"
+"  float distorts = 0.3881*pow(texchop,4)-0.1844*pow(texchop,3) - 0.2624*pow(texchop,2)+1.049*texchop;"
 " if (Texcoord.s > 0.3333)"
+" {"
 "  texchop = texchop - 1;"
+"  distorts = 0.3881*pow(texchop, 4) - 0.1844*pow(texchop, 3) - 0.2624*pow(texchop, 2) + 1.049*texchop;"
+" }"
 " if (Texcoord.s > 0.6666)"
+" {"
 "  texchop = texchop - 1;"
-
-"  float distortsinit = 0.3881*pow(texchop,4)-0.1844*pow(texchop,3) - 0.2624*pow(texchop,2)+1.049*texchop;"
-
-"  float distorts = 0.5*(1+ tan(angofScreen*(distortsinit - 0.5))/tan(0.5*angofScreen));"
-"  float distortt = 0.5 + (distorttinit - 0.5) * cos(0.5 * angofScreen)/cos(angofScreen*(distorts-0.5));"
-
-"  float brightcorrect = 1.243*pow(distorts,4)-1.328*pow(distorts,3) + 0.8553*pow(distorts,2)-0.3047*distorts+0.5221;"
+//"  distorts = 0.3881*pow(texchop, 4) - 0.1844*pow(texchop, 3) - 0.2624*pow(texchop, 2) + 1.049*texchop;"
+"  distorts = 0.6128*pow(texchop, 4) - 0.474*pow(texchop, 3) - 0.1926*pow(texchop, 2) + 1.037*texchop;"
+" }"
 
 "  distorts = 0.333 * distorts; "
 " if (Texcoord.s > 0.3333)"
@@ -116,7 +112,7 @@ const char* fragment_shader =
 " if (Texcoord.s > 0.6666)"
 "  distorts = distorts + 0.333;"
 
-"  distortt = distorttinit;"
+" float brightcorrect = 2.285*pow(distorts, 4) - 4.57*pow(distorts, 3) + 4.496*pow(distorts, 2) - 2.211*distorts + 0.9976; "
 
 "  if (cyl == 0.0)"
 "  {"
@@ -124,17 +120,6 @@ const char* fragment_shader =
 "   distortt = Texcoord.t;"
 "   brightcorrect = 1.0;"
 "  }"
-
-" float projcorrect = projnorm/proj1power;"
-" if (Texcoord.s < 0.3333)"
-"  projcorrect = projnorm/proj2power;"
-" if (Texcoord.s > 0.6666)"
-"  projcorrect = projnorm/proj0power;"
-
-" if (projnum == 100)"
-" {"
-"  projcorrect = 1.0;"
-" }"
 
 "  vec2 distort = vec2 (distorts, distortt);"
 "  vec4 unmodColor = texture(tex, distort);"
@@ -153,7 +138,7 @@ const char* fragment_shader =
 "  unmodColor.r = 0.0;"
 "  unmodColor.b = 0.0;"
 " }"
-"  frag_colour = projcorrect*brightcorrect*vec4(unmodColor.r*1.0, unmodColor.g*1.0, unmodColor.b*1.0, 1.0 );"
+"  frag_colour = brightcorrect*vec4(unmodColor.r*1.0, unmodColor.g*1.0, unmodColor.b*1.0, 1.0 );"
 "}";
 
 // Define the OpenGL constants
@@ -169,7 +154,6 @@ GLuint fs;
 GLuint shader_program;
 GLuint *tex;
 GLuint cylLocation;
-GLuint ProjNumber;
 GLuint setColor;
 glm::mat4 ProjectionMatrix;
 GLuint ProjectionID;
@@ -402,9 +386,6 @@ void InitOpenGL(void)
 	// Pull out the cylindrical distortion switch uniform from the shader
 	cylLocation = glGetUniformLocation(shader_program, "cyl");
 
-	// Pull out the projector switch to set the brightness
-	ProjNumber = glGetUniformLocation(shader_program, "projnum");
-
 	// Pull out the color setting
 	setColor = glGetUniformLocation(shader_program, "color");
 
@@ -536,7 +517,6 @@ void RenderFrame(int closed, int trans, int direction, float lookDownAng, float 
 		glUniform1i(setColor, (int)n+1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear the buffers
 		glUniform1f(cylLocation, (float) 0.0f); // Initially, we want an undistorted projection
-		glUniform1i(ProjNumber, (int)100);  // No brightness correction the first time
 
 		// Take a picture for each of the camera angles
 		for (int windowNum = 0; windowNum < numDivAngs; windowNum++) {
@@ -652,7 +632,6 @@ void RenderFrame(int closed, int trans, int direction, float lookDownAng, float 
 		glUniformMatrix4fv(ProjectionID, 1, false, glm::value_ptr(ProjectionMatrix));
 		glUniformMatrix4fv(ViewID, 1, false, glm::value_ptr(ViewMatrix));
 		glUniformMatrix4fv(ModelID, 1, false, glm::value_ptr(identity));
-		glUniform1i(ProjNumber, (int)1);  // Correct for the brightness difference between projectors
 
 		// Draw the rectangle
 		for (int n = 0; n < 3; n++) {
@@ -671,7 +650,6 @@ void PDBox(void)
 {
 	// Draw a box to trigger the photodiode
 	glUniform1f(cylLocation, (float) 0.0f); // Initially, we want an undistorted projection
-	glUniform1i(ProjNumber, (int)100);  // No brightness correction the first time
 	glBindTexture(GL_TEXTURE_2D, tex[0]);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(GLfloat)));
 }
