@@ -19,10 +19,12 @@ FILE *str;
 int DAQDat(void)
 {
 	int opRate = 1000;
-	int numPulses = 60;
-	float freqPulses = 1.0;
-	int widthPulses = 500;
-	int pulseAmp = 5;
+	int numTrains = 5;
+	float freqTrains = 0.05;
+	int numPulses = 60;// 60; 30; 15; 5; 1
+	float freqPulses = 30;
+	int widthPulses = 2;
+	float pulseAmp = 5;
 	int lPulseTrain = 1 + round(numPulses * opRate / freqPulses);
 	int numHigh = opRate* widthPulses / 1000;
 
@@ -47,11 +49,15 @@ int DAQDat(void)
 	for (int step = 0; step < 120000; step++)
 	{
 		LEDData[step] = 0;
-		for (int pulse = 0; pulse < numPulses; pulse++)
+		for (int train = 1; train < numTrains+1; train++)
 		{
-			int pulseOffset = pulse * opRate / freqPulses;
-			if ((step - pulseOffset < widthPulses) && (step - pulseOffset > 0))
-				LEDData[step] = pulseAmp;
+			int trainOffset = train *opRate / freqTrains;
+			for (int pulse = 0; pulse < numPulses; pulse++)
+			{
+				int pulseOffset = pulse * opRate / freqPulses;
+				if ((step - pulseOffset - trainOffset < widthPulses) && (step - pulseOffset - trainOffset > 0))
+					LEDData[step] = pulseAmp;
+			}
 		}
 	}
 

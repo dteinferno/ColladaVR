@@ -45,30 +45,90 @@ float startingPos = -5.0f;
 float flyAng = 30.0f * M_PI / 180;
 float lookDownAng = 0;
 
-int jumpStripe = 00; // also set stripe to be continuous in glmain
+int jumpStripe = 1; // also set stripe to be continuous in glmain
 
-const char * ColladaFname = "D:\\Environments\\Grid.dae";
+//const char * ColladaFname = "D:\\Environments\\Grid.dae";
 
-// Environments and protocol for probing PB-FB activity
+// Environments and protocol fo cr probing PB-FB activity
 //const char * ColladaFname = "D:\\Environments\\StripeBG.dae";
+//const char * ColladaFname = "D:\\Environments\\ClutterBack.dae";
+//const char * ColladaFname = "D:\\Environments\\GroundPlane.dae";
+
+//const char * ColladaFname = "D:\\Environments\\MSClutterBack.dae";
+//const char * ColladaFname = "D:\\Environments\\MSClutterBackWCyl.dae";
+//const char * ColladaFname = "D:\\Environments\\StripeBackWGroundPlane.dae";
+
+//const char * ColladaFname = "D:\\Environments\\ClutterBackWGroundPlane.dae";
+//const char * ColladaFname = "D:\\Environments\\CylClutterBack.dae";
 //const char * ColladaFname = "D:\\Environments\\FullScene.dae";
+//const char * ColladaFname = "D:\\Environments\\TwoObjScene2.dae";
+//const char * ColladaFname = "D:\\Environments\\MultiScene.dae";
+//const char * ColladaFname = "D:\\Environments\\WhiteNoise.dae";
+//const char * ColladaFname = "D:\\Environments\\TwoObjScene_Mount.dae";
+//const char * ColladaFname = "D:\\Environments\\TwoObjScene_Cloud.dae";
 //const char * ColladaFname = "D:\\Environments\\AllOn.dae";
-//const char * ColladaFname = "D:\\Environments\\FlowV1.dae";
-//const char * ColladaFname = "D:\\Environments\\OneCylV1z_LightCylFlatBack.dae";
-trial experiment[3] = { { 5, 1, 0, 0, 0, 1 }, { 600, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
+//const char * ColladaFname = "D:\\Environments\\FlowV4.dae";
+//const char * ColladaFname = "D:\\Environments\\OneCylV1_LightCylFlatBack.dae";
+
+//Hannah
+//const char * ColladaFname = "D:\\Environments\\PIworlds_opticFlowIn2D\\black_flatGroundPlane.dae";
+//const char * ColladaFname = "D:\\Environments\\PIworlds_opticFlowIn2D\\stripe15deg_flatGroundPlane.dae";
+
+////const char * ColladaFname = "D:\\Environments\\PIworlds_opticFlowIn2D\\black_texGroundPlane.dae";
+////const char * ColladaFname = "D:\\Environments\\PIworlds_opticFlowIn2D\\stripe15deg_texGroundPlane.dae";
+
+//const char * ColladaFname = "D:\\Environments\\PIworlds_opticFlowIn2D\\black_texFineGroundPlane.dae";
+//const char * ColladaFname = "D:\\Environments\\PIworlds_opticFlowIn2D\\stripe15deg_texfineGroundPlane.dae";
+
+//trial experiment[1] = { 185, 1, 0, 1, 0, 1 }; //125
+
+//const char * ColladaFname = "D:\\Environments\\MSClutterBack.dae";
+//const char * ColladaFname = "D:\\Environments\\MSClutterBackWCyl.dae";
+
+
+// Hannah PFN
+//const char * ColladaFname = "D:\\Environments\\StripeBG.dae";
+//const char * ColladaFname = "D:\\Environments\\PIworlds_opticFlowIn2D\\stripe15deg_texfineGroundPlane.dae";
+//trial experiment[1] = { 130, 1, 0, 1, 0, 1 };  // please don't change
+
+//const char * ColladaFname = "D:\\Environments\\PIworlds_opticFlowIn2D\\stripe15deg_texfineGroundPlane_Big.dae";
+
+//const char * ColladaFname = "D:\\Environments\\AllOn.dae";
+const char * ColladaFname = "D:\\Environments\\StripeBG_larger.dae";
+//const char * ColladaFname = "D:\\Environments\\PIworlds_opticFlowIn2D\\stripe15deg_texFineGroundPlane_Big.dae";
+//const char * ColladaFname = "D:\\Environments\\PIworlds_opticFlowIn2D\\twostripe15deg_texfineGroundPlane_Big.dae";
+//trial experiment[1] = { 305, 1, 0, 1, 0, 1 };
+//trial experiment[3] = { { 95, 1, 0, 0, 0, 1 }, { 120, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
+trial experiment[3] = { { 125, 1, 0, 0, 0, 1 }, { 240, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
+//trial experiment[6] = { { 65, 1, 0, 0, 0, 1 }, { 60, 1, 0, 1, 0, 1 }, { 30, 0, 0, 1, 5, 1 }, { 30, 0, 0, -1, 5, 1 }, { 5, 1, 0, 0, 0, 1 } };
+//trial experiment[4] = { { 5, 1, 0, 0, 0, 1 }, { 30, 0, 0, 1, 5, 1 }, { 30, 0, 0, -1, 5, 1 }, { 5, 1, 0, 0, 0, 1 } };
+//trial experiment[4] = { { 5, 1, 0, 0, 0, 1 }, { 60, 1, 0, 0, 0, 1 }, { 120, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
 //trial experiment[3] = { { 60, 1, 0, 0, 0, 1 }, { 140, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 }, };
 //trial experiment[4] = { { 60, 1, 0, 0, 0, 1 }, { 60, 1, 0, 1, 0, 0.75 }, { 60, 1, 0, 1, 0, 1.25 }, { 5, 1, 0, 0, 0, 1 }, };
-//trial experiment[3] = { { 5, 1, 0, 0, 0, 1 }, { 120, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
 //trial experiment[10] = { { 5, 1, 0, 0, 0, 1 },
 //{ 15, 0, 1, 1, 360 / 10, 1 }, { 15, 0, 1, -1, 360 / 10, 1 }, { 15, 0, 0, 1, 5, 1 }, { 15, 0, 0, -1, 5, 1 },
 //{ 15, 0, 1, 1, 360 / 10, 1 }, { 15, 0, 1, -1, 360 / 10, 1 }, { 15, 0, 0, 1, 5, 1 }, { 15, 0, 0, -1, 5, 1 },
 //{ 5, 1, 0, 0, 0 } };
-//trial experiment[2] = { { 30, 1, 0, 0, 0, 1 }, { 120, 1, 0, 1, 0, 1 }};
+//trial experiment[2] = { { 60, 1, 0, 0, 0, 1 }, { 125, 1, 0, 1, 0, 1 }};
 //trial experiment[14] = { { 5, 1, 0, 0, 0, 1 },
 //{ 15, 0, 1, 1, 360 / 5, 1 }, { 15, 0, 1, -1, 360 / 5, 1 }, { 15, 0, 0, 1, 5, 1 }, { 15, 0, 0, -1, 5, 1 },
 //{ 15, 0, 1, 1, 360 / 5, 1 }, { 15, 0, 1, -1, 360 / 5, 1 }, { 15, 0, 0, 1, 5, 1 }, { 15, 0, 0, -1, 5, 1 },
 //{ 15, 0, 1, 1, 360 / 5, 1 }, { 15, 0, 1, -1, 360 / 5, 1 }, { 15, 0, 0, 1, 5, 1 }, { 15, 0, 0, -1, 5, 1 },
 //{ 5, 1, 0, 0, 0 } };
+//trial experiment[8] = { { 5, 1, 0, 0, 0, 1 },
+//{ 60, 1, 0, 1, 0, 1 }, { 60, 1, 0, 0, 0, 1 },
+//{ 30, 0, 1, 1, 360 / 5, 1 }, { 30, 0, 1, -1, 360 / 5, 1 }, { 30, 0, 0, 1, 5, 1 }, { 30, 0, 0, -1, 5, 1 },
+//{ 5, 1, 0, 0, 0 } };
+//trial experiment[9] = { { 35, 1, 0, 0, 0, 1 },
+//{ 30, 1, 0, 1, 0, 1 },
+//{ 30, 0, 1, 1, 360 / 5, 1 }, { 30, 0, 1, -1, 360 / 5, 1 },
+//{ 30, 0, 1, 1, 360 / 10, 1 }, { 30, 0, 1, -1, 360 / 10, 1 },
+//{ 30, 0, 1, 1, 360 / 20, 1 }, { 30, 0, 1, -1, 360 / 20, 1 },
+//{ 5, 1, 0, 0, 0 } };
+//trial experiment[3] = { { 65, 1, 0, 0, 0, 1 }, { 120, 1, 0, 1, 0, 1 }, { 5, 1, 0, 0, 0, 1 } };
+//trial experiment[1] = { 3600, 1, 0, 1, 0, 1 };
+//trial experiment[4] = { { 30, 0, 1, 1, 360 / 5, 1 }, { 30, 0, 1, -1, 360 / 5, 1 },
+//{ 30, 0, 1, 1, 360 / 10, 1 }, { 30, 0, 1, -1, 360 / 10, 1 } };
 
 // Environments and protocol for the optic flow experiments
 //const char * ColladaFname = "D:\\Environments\\OneCylV1_NoCylFlatBack.dae";
@@ -135,7 +195,7 @@ int LEDRun = 0;
 
 // Filename for the synchronization file
 char* syncfname;
-char syncfnamebuf[100];
+char syncfnamebuf[1000];
 
 // Create device contexts and window handles for three windows
 HDC hdc1;
@@ -301,8 +361,8 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 	fopen_s(&str, ofn.lpstrFile, "w");
 
 	//Set the filename for the DAQ data
-	strncpy_s(syncfnamebuf, 100, ofn.lpstrFile, strlen(ofn.lpstrFile) - 4);
-	strcat_s(syncfnamebuf, 100, "_SYNC.txt");
+	strncpy_s(syncfnamebuf, 1000, ofn.lpstrFile, strlen(ofn.lpstrFile) - 4);
+	strcat_s(syncfnamebuf, 1000, "_SYNC.txt");
 	syncfname = syncfnamebuf;
 
 	//Print the Collada filename
@@ -324,7 +384,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 	float dy0Now = 0.0f;
 	float dy1Now = 0.0f;
 	InitOffset();
-	Sleep(2000);
+	Sleep(3000);
 
 	PFNWGLSWAPINTERVALEXTPROC       wglSwapIntervalEXT = NULL;
 	PFNWGLGETSWAPINTERVALEXTPROC    wglGetSwapIntervalEXT = NULL;
@@ -361,7 +421,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 			//Generate a random starting offset
 			srand(time(0));
 			io_mutex.lock();
-			BallOffsetRot = 0.0f;
+			BallOffsetRot = rand() % 360;// 0.0f;
 			BallOffsetFor = startingPos;
 			BallOffsetSide = 0.0f;
 			io_mutex.unlock();
@@ -436,21 +496,21 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hprevinstance, LPSTR lpcmdline
 		fprintf(str, "closed:\t%d\t", experiment[trialNow].fback);
 		fprintf(str, "olsdir:\t%d\t", experiment[trialNow].direction);
 		fprintf(str, "trans:\t%d\t", experiment[trialNow].polar);
-		fprintf(str, "olgain:\t%f\n", experiment[trialNow].olGain);
+		fprintf(str, "olgain:\t%f\t", experiment[trialNow].olGain);
 		fprintf(str, "clgain:\t%f\n", experiment[trialNow].clGain);
 
 		if (GetAsyncKeyState(VK_ESCAPE))
 			SysShutdown();
 		//if (GetAsyncKeyState(VK_SCROLL))
-		//if ((netTime > 10) & (netTime < 10.1))
-		//	LEDRun = 1;
+		//if ((netTime > 5) & (netTime < 5.1))
+		LEDRun = 0;
 		if (jumpStripe)
 		{
-			if ((netTime > 120) & (netTime < 120.1))
+			if ((netTime > 300) & (netTime < 300.1))
 			{
 				experiment[trialNow].polar = 3;
 			}
-			if ((netTime > 170) & (netTime < 170.1))
+			if ((netTime > 330) & (netTime < 330.1))
 			{
 				experiment[trialNow].polar = 4;
 			}

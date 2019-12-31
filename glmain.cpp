@@ -13,7 +13,7 @@
 #include "colladainterface.h"
 
 // Specify whether the stripe is continuous (0) or jumps across the back (1)
-int jump = 0;
+int jump = 1;
 
 // Define variable for correlated noise
 const int numObjects = 100;
@@ -274,10 +274,10 @@ void InitOpenGL(void)
 		windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 1.0f, 0.0f,
 
 		// Second set of points for a blinking dot that will trigger the photodiode.
-		windowSpan, (float)dist2stripe, windowSpan * (1 / aspect - 0.15), 1.0f, 1.0f, 1.0f,
-		windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 1.0f, 0.0f,
-		0.85*windowSpan, (float)dist2stripe, windowSpan * (1 / aspect - 0.15), 1.0f, 0.0f, 1.0f,
-		0.85*windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 0.0f, 0.0f,
+		-0.15*windowSpan, (float)dist2stripe, windowSpan * (1 / aspect - 0.1), 1.0f, 1.0f, 1.0f,
+		-0.15*windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 1.0f, 0.0f,
+		-0.3*windowSpan, (float)dist2stripe, windowSpan * (1 / aspect - 0.1), 1.0f, 0.0f, 1.0f,
+		-0.3*windowSpan, (float)dist2stripe, windowSpan / aspect, 1.0f, 0.0f, 0.0f,
 	};
 
 	// Bind the vertex data to the buffer array
@@ -522,7 +522,7 @@ void RenderFrame(int closed, int trans, int direction, float lookDownAng, float 
 		for (int windowNum = 0; windowNum < numDivAngs; windowNum++) {
 
 			// Define the scene to be captured
-			glViewport(SCRWIDTH*windowNum / numDivAngs, SCRHEIGHT / 4, SCRWIDTH / numDivAngs, SCRHEIGHT / 2 ); // Restrict the viewport to the region of interest
+			glViewport(SCRWIDTH*windowNum / numDivAngs, SCRHEIGHT / 8, SCRWIDTH / numDivAngs, SCRHEIGHT / 2 ); // Restrict the viewport to the region of interest
 			float angNow = fovAngNow * (windowNum - (numDivAngs - 1)/2);
 			ViewMatrix = glm::lookAt(glm::vec3(0, 0, 0), glm::vec3(sinf(angNow), cosf(angNow), 0), glm::vec3(0, 0, 1)) * glm::rotate(identity, lookDownAng, glm::vec3(1.0f, 0.0f, 0.0f)); //Look at the appropriate direction for the projector
 			glUniformMatrix4fv(ViewID, 1, false, glm::value_ptr(ViewMatrix));
@@ -539,7 +539,7 @@ void RenderFrame(int closed, int trans, int direction, float lookDownAng, float 
 				}
 				if (trans == 3)
 				{
-					RotOffset = 60;
+					RotOffset = 120;
 				}
 				if (trans == 4)
 				{
@@ -572,10 +572,11 @@ void RenderFrame(int closed, int trans, int direction, float lookDownAng, float 
 				BallOffsetSideNow = 0.0f;
 			}
 
-			int intBOR = int(BallOffsetRotNow) + 180;
+			int intBOR = int(BallOffsetRotNow);
+
 			if (jump)
 			{
-				if (intBOR % 360 > 300)
+				if (intBOR > 120)
 				{
 					BallOffsetRotNow = BallOffsetRotNow - 240.0f;
 					io_mutex.lock();
@@ -583,12 +584,13 @@ void RenderFrame(int closed, int trans, int direction, float lookDownAng, float 
 					io_mutex.unlock();
 
 				}
-				if (intBOR % 360 < 60)
+				if (intBOR < -120)
 				{
-					BallOffsetRotNow = 240.0f + BallOffsetRotNow;
+					BallOffsetRotNow = BallOffsetRotNow + 240.0f;
 					io_mutex.lock();
-					BallOffsetRot = BallOffsetRot + 240.0f/clGain;
+					BallOffsetRot = BallOffsetRot + 240.0f / clGain;
 					io_mutex.unlock();
+
 				}
 			}
 

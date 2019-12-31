@@ -1,0 +1,51 @@
+﻿Build started 12/20/2019 1:42:04 PM.
+     1>Project "D:\OpenGL\Collada\Collada\Collada.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"D:\OpenGL\Simple OpenGL Image Library\src" /I"C:\Program Files (x86)\National Instruments\NI-DAQ\DAQmx ANSI C Dev\include" /ID:\OpenGL\boost_1_55_0\boost_1_55_0 /ID:\OpenGL\include /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D WIN32 /D _DEBUG /D _WINDOWS /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt glmain.cpp winmain.cpp
+         winmain.cpp
+     1>d:\opengl\collada\collada\winmain.cpp(45): warning C4305: 'initializing' : truncation from 'double' to 'float'
+     1>d:\opengl\collada\collada\winmain.cpp(422): warning C4244: 'argument' : conversion from 'time_t' to 'unsigned int', possible loss of data
+     1>d:\opengl\collada\collada\winmain.cpp(424): warning C4244: '=' : conversion from 'int' to 'float', possible loss of data
+     1>d:\opengl\collada\collada\winmain.cpp(342): warning C4101: 'hf' : unreferenced local variable
+         glmain.cpp
+     1>d:\opengl\collada\collada\glmain.cpp(39): warning C4305: 'initializing' : truncation from 'double' to 'float'
+     1>d:\opengl\collada\collada\glmain.cpp(281): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+     1>d:\opengl\collada\collada\glmain.cpp(356): warning C4018: '<' : signed/unsigned mismatch
+     1>d:\opengl\collada\collada\glmain.cpp(423): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>d:\opengl\collada\collada\glmain.cpp(444): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>d:\opengl\collada\collada\glmain.cpp(446): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>d:\opengl\collada\collada\glmain.cpp(197): warning C4101: 'normAttrib' : unreferenced local variable
+     1>d:\opengl\collada\collada\glmain.cpp(365): warning C4101: 'fnstr' : unreferenced local variable
+     1>d:\opengl\collada\collada\glmain.cpp(525): warning C4244: 'argument' : conversion from 'float' to 'GLsizei', possible loss of data
+     1>d:\opengl\collada\collada\glmain.cpp(525): warning C4244: 'argument' : conversion from 'float' to 'GLint', possible loss of data
+     1>d:\opengl\collada\collada\glmain.cpp(537): warning C4244: 'argument' : conversion from 'float' to 'time_t', possible loss of data
+     1>d:\opengl\collada\collada\glmain.cpp(564): warning C4244: 'argument' : conversion from 'float' to 'time_t', possible loss of data
+     1>d:\opengl\collada\collada\glmain.cpp(569): warning C4244: 'argument' : conversion from 'float' to 'time_t', possible loss of data
+     1>d:\opengl\collada\collada\glmain.cpp(676): warning C4018: '<' : signed/unsigned mismatch
+     1>d:\opengl\collada\collada\glmain.cpp(690): warning C4018: '<' : signed/unsigned mismatch
+     1>d:\opengl\collada\collada\glmain.cpp(711): warning C4018: '<' : signed/unsigned mismatch
+         GLM: rotate function taking degrees as a parameter is deprecated. #define GLM_FORCE_RADIANS before including GLM headers to remove this message.
+         GLM: perspective function taking degrees as a parameter is deprecated. #define GLM_FORCE_RADIANS before including GLM headers to remove this message.
+         Generating Code...
+     1>d:\opengl\collada\collada\winmain.cpp(293): warning C4715: 'WinProc' : not all control paths return a value
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\OpenGL\Collada\Debug\Collada.exe" /INCREMENTAL /NOLOGO /LIBPATH:D:\OpenGL\include\tinyxml\Releasetinyxml /LIBPATH:"D:\OpenGL\Simple OpenGL Image Library\projects\VC9\Release" /LIBPATH:"C:\Program Files (x86)\National Instruments\NI-DAQ\DAQmx ANSI C Dev\lib\msvc" /LIBPATH:"D:\OpenGL\CDM v2.10.00 WHQL Certified\i386" /LIBPATH:D:\OpenGL\boost_1_55_0\boost_1_55_0\stage\lib /LIBPATH:"D:\OpenGL\glew-1.10.0-win32\glew-1.10.0\lib\Release\Win32" opengl32.lib glu32.lib glew32.lib odbc32.lib odbccp32.lib ftd2xx.lib NIDAQmx.lib SOIL.lib tinyxml.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:\OpenGL\Collada\Debug\Collada.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\OpenGL\Collada\Debug\Collada.lib" /MACHINE:X86 Debug\Collada.res
+         Debug\balloffset.obj
+         Debug\colladainterface.obj
+         Debug\DAQ.obj
+         Debug\glmain.obj
+         Debug\system.obj
+         Debug\winmain.obj
+         SOIL.lib(SOIL.obj) : MSIL .netmodule or module compiled with /GL found; restarting link with /LTCG; add /LTCG to the link command line to improve linker performance
+     1>LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/LTCG' specification
+     1>balloffset.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/OPT:LBR' specification
+     1>LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
+     1>LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
+         Generating code
+         Finished generating code
+         Collada.vcxproj -> D:\OpenGL\Collada\Debug\Collada.exe
+     1>Done Building Project "D:\OpenGL\Collada\Collada\Collada.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:22.46
